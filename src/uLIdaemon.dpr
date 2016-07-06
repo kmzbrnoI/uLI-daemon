@@ -5,7 +5,8 @@ uses
   Forms,
   Windows,
   SysUtils,
-  fMain in 'fMain.pas' {F_Main};
+  fMain in 'fMain.pas' {F_Main},
+  Verze in 'Verze.pas';
 
 {$R *.res}
 

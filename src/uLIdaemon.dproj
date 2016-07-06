@@ -44,6 +44,7 @@
 			<DCCReference Include="fMain.pas">
 				<Form>F_Main</Form>
 			</DCCReference>
+			<DCCReference Include="Verze.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

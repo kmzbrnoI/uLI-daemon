@@ -1,5 +1,9 @@
 unit fMain;
 
+{
+  Unit hlavniho okynka, tady se resi predevsim interakce s GUI.
+}
+
 interface
 
 uses
@@ -8,6 +12,7 @@ uses
 
 type
   TF_Main = class(TForm)
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
   public
@@ -19,6 +24,13 @@ var
 
 implementation
 
+uses Verze;
+
 {$R *.dfm}
 
-end.
+procedure TF_Main.FormShow(Sender: TObject);
+begin
+ Self.Caption := 'uLI-daemon v'+GetVersion(Application.ExeName)+' (build '+GetLastBuildDate()+')';
+end;
+
+end.//unit
