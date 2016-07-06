@@ -45,6 +45,7 @@
 				<Form>F_Main</Form>
 			</DCCReference>
 			<DCCReference Include="Verze.pas"/>
+			<DCCReference Include="tUltimateLI.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

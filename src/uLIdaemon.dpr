@@ -6,7 +6,8 @@ uses
   Windows,
   SysUtils,
   fMain in 'fMain.pas' {F_Main},
-  Verze in 'Verze.pas';
+  Verze in 'Verze.pas',
+  tUltimateLI in 'tUltimateLI.pas';
 
 {$R *.res}
 
