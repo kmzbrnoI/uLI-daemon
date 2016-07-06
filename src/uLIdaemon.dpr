@@ -3,11 +3,14 @@ program uLIdaemon;
 
 uses
   Forms,
+  Windows,
   fMain in 'fMain.pas' {F_Main};
 
 {$R *.res}
 
 begin
+  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.Title := 'uLI-daemon';

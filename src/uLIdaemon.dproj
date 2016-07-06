@@ -41,9 +41,6 @@
 			<DelphiCompile Include="uLIdaemon.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="fMain.pas">
-				<Form>F_Main</Form>
-			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
