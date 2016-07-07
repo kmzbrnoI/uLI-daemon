@@ -76,7 +76,6 @@ var
   Enum:     IEnumVariant;
   Value:    Cardinal;
   TempObj:  OleVariant;
-  arr: array of string;
 
 begin
 
@@ -118,7 +117,7 @@ end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
 begin
- uLI.logLevel := tllDetail;
+ uLI.logLevel := tllCommands;
  uLI.OnLog    := Self.OnuLILog;
 end;
 

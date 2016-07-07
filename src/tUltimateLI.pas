@@ -24,6 +24,13 @@ type
 
   TuLI = class
     private const
+      _DEF_ULI_STATUS : TuLIStatus = (
+        sense: false;
+        transistor: false;
+        aliveReceiving: true;
+        aliveSending: true;
+      );
+
       _CPORT_BAUDRATE    = br19200;
       _CPORT_STOPBITS    = sbOneStopBit;
       _CPORT_DATABITS    = dbEight;
@@ -114,6 +121,8 @@ constructor TuLI.Create();
 begin
  inherited;
 
+ Self.uLIStatus := _DEF_ULI_STATUS;
+
  Self.ComPort := TComPort.Create(nil);
  Self.ComPort.BaudRate                := _CPORT_BAUDRATE;
  Self.ComPort.StopBits                := _CPORT_STOPBITS;
@@ -162,14 +171,15 @@ end;
 
 procedure TuLI.OnComError(Sender: TObject; Errors: TComErrors);
 begin
-
+ Self.WriteLog(tllErrors, 'ERR: COM PORT ERROR');
 end;
 
 procedure TuLI.OnComException(Sender: TObject;
    TComException: TComExceptions; ComportMessage: string; WinError: Int64;
    WinMessage: string);
 begin
-
+ Self.WriteLog(tllErrors, 'ERR: COM PORT EXCEPTION: '+ComportMessage+'; '+WinMessage);
+ raise Exception.Create(ComportMessage);
 end;
 
 procedure TuLI.ComBeforeOpen(Sender:TObject);
@@ -180,11 +190,18 @@ end;
 procedure TuLI.ComAfterOpen(Sender:TObject);
 begin
  Self.WriteLog(tllCommands, 'OPEN OK');
+
+ // reset uLI status
+ Self.uLIStatus := _DEF_ULI_STATUS;
+ Self.SetStatus(Self.uLIStatus);
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
 begin
-
+ Self.tKASendTimer.Enabled    := false;
+ Self.tKAReceiveTimer.Enabled := false;
+ Self.uLIStatusValid := false;
+ Self.uLIStatus := _DEF_ULI_STATUS;
 end;
 
 procedure TuLI.ComAfterClose(Sender:TObject);
@@ -459,6 +476,7 @@ begin
    on E : Exception do
     begin
      Self.WriteLog(tllErrors, 'PUT ERR: com object error : '+E.Message);
+     if (Self.ComPort.Connected) then Self.Close();
     end;
   end;
 
@@ -508,6 +526,7 @@ end { EnumComPorts };
 procedure TuLI.SetStatus(new:TuLIStatus);
 var data:Byte;
 begin
+ Self.WriteLog(tllCommands, 'PUT: status');
  data := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
           (Integer(new.aliveSending) shl 3);
  Self.Send(CreateBuf(ShortString(#$A0+#$11+AnsiChar(data))));
