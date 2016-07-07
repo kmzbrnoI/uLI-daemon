@@ -22,6 +22,9 @@ type
    aliveSending: boolean;
   end;
 
+  EuLIStatusInvalid = class(Exception);
+  EPowerTurnedOff = class(Exception);
+
   TuLI = class
     private const
       _DEF_ULI_STATUS : TuLIStatus = (
@@ -86,12 +89,15 @@ type
       procedure WriteLog(lvl:TuLILogLevel; msg:string);
 
       procedure Send(data:TBuffer);
+      procedure SendKeepAlive();
+      procedure SendStatusRequest();
 
       procedure SetLogLevel(new:TuLILogLevel);
 
       function CreateBuf(str:ShortString):TBuffer;
 
-      procedure SendKeepAlive();
+
+      procedure SetBusActive(new:boolean);
 
     public
 
@@ -107,6 +113,7 @@ type
 
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
+      property busEnabled: boolean read uLIStatus.transistor write SetBusActive;
 
   end;
 
@@ -372,11 +379,16 @@ begin
    $21: begin
      case (msg.data[2]) of
        $21: begin
-         // command station software-version request
+         Self.WriteLog(tllCommands, 'GET: command station software version request');
+         Self.WriteLog(tllCommands, 'SEND: command station software version');
+         Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$63+#$21+#$36+#$00)));
        end;//$21
 
        $24: begin
-         // command station status request
+         // TODO: send track status according to real command station status
+         Self.WriteLog(tllCommands, 'GET: command station status request');
+         Self.WriteLog(tllCommands, 'SEND: command station staus');
+         Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$62+#$22+#$00)));
        end;
      end;// case msg.data[2]
    end;//$21
@@ -444,7 +456,7 @@ var
 begin
   if (not Self.ComPort.Connected) then
    begin
-    Self.WriteLog(tllErrors, 'PUT ERR: XpressNet not connected');
+    Self.WriteLog(tllErrors, 'PUT ERR: uLI not connected');
     Exit;
    end;
   if (data.Count > 18) then
@@ -567,7 +579,30 @@ begin
  Self.Send(CreateBuf(#$A0+#$01+#$05));
 end;
 
+procedure TuLI.SendStatusRequest();
+begin
+ Self.WriteLog(tllChanges, 'SEND: status request');
+ Self.Send(CreateBuf(#$A0+#$11+#$A2));
+end;
+
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SetBusActive(new:boolean);
+var newStatus:TuLIStatus;
+begin
+ if (not Self.uLIStatusValid) then
+  begin
+   Self.SendStatusRequest();
+   raise EuLIStatusInvalid.Create('Program nemá validní data o stavu uLI');
+  end;
+
+ if (not self.uLIStatus.sense) then
+   raise EPowerTurnedOff.Create('Napájení sbìrnice je vypnuto');
+
+ newStatus := Self.uLIStatus;
+ newStatus.transistor := new;
+ Self.SetStatus(newStatus);
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

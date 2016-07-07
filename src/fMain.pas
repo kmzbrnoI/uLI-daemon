@@ -27,6 +27,7 @@ type
     procedure Button3Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     { Private declarations }
 
@@ -107,17 +108,27 @@ begin
 end;
 
 procedure TF_Main.Button4Click(Sender: TObject);
-var new: TuLIStatus;
 begin
- new.transistor := true;
- new.aliveReceiving := true;
- new.aliveSending := true;
- uLI.SetStatus(new);
+ uLI.busEnabled := not uLI.busEnabled;
+end;
+
+procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+ if (uLI.busEnabled) then
+  begin
+   // TODO: this should be (maybe) done better
+   uLI.busEnabled := false;
+   while (uLI.busEnabled) do
+    begin
+     Application.ProcessMessages();
+     sleep(1);
+    end;
+  end;
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
 begin
- uLI.logLevel := tllCommands;
+ uLI.logLevel := tllData;
  uLI.OnLog    := Self.OnuLILog;
 end;
 
