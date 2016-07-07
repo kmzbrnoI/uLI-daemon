@@ -6,7 +6,8 @@ unit tUltimateLI;
 
 interface
 
-uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows;
+uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows,
+     ExtCtrls;
 
 type
   TBuffer = record
@@ -33,11 +34,20 @@ type
 
       _DEVICE_DESCRIPTION = 'uLI - master';
 
+      _KA_SEND_PERIOD_MS = 1000;
+      _KA_RECEIVE_TIMEOUT_TICKS = 6;
+      _KA_RECEIVE_PERIOD_MS = 500;
+
     private
-     ComPort:TComPort;
+     ComPort: TComPort;
+
+     tKASendTimer: TTimer;
+     tKAReceiveTimer: TTimer;
+
+     KAreceiveTimeout: Integer;
 
      Fbuf_in: TBuffer;
-     Fbuf_in_timeout:TDateTime;
+     Fbuf_in_timeout: TDateTime;
 
      uLIStatusValid: boolean;
      uLIStatus: TuLIStatus;
@@ -46,6 +56,9 @@ type
 
      // events
      fOnLog: TuLILogEvent;
+
+      procedure OntKASendTimer(Sender:TObject);
+      procedure OntKAReceiveTimer(Sender:TObject);
 
       procedure OnComError(Sender: TObject; Errors: TComErrors);
       procedure OnComException(Sender: TObject;
@@ -61,6 +74,7 @@ type
       procedure ParseComMsg(var msg: TBuffer);
       procedure ParseDeviceMsg(deviceAddr:Byte; var msg: TBuffer);
       procedure ParseuLIMsg(var msg: TBuffer);
+      procedure ParseuLIStatus(var msg:TBuffer);
 
       procedure WriteLog(lvl:TuLILogLevel; msg:string);
 
@@ -69,6 +83,8 @@ type
       procedure SetLogLevel(new:TuLILogLevel);
 
       function CreateBuf(str:ShortString):TBuffer;
+
+      procedure SendKeepAlive();
 
     public
 
@@ -112,11 +128,23 @@ begin
  Self.ComPort.OnAfterClose  := Self.ComAfterClose;
  Self.ComPort.OnRxChar      := Self.ComRxChar;
 
+ Self.tKASendTimer          := TTimer.Create(nil);
+ Self.tKASendTimer.Interval := _KA_SEND_PERIOD_MS;
+ Self.tKASendTimer.Enabled  := false;
+ Self.tKASendTimer.OnTimer  := Self.OntKASendTimer;
+
+ Self.tKAReceiveTimer          := TTimer.Create(nil);
+ Self.tKAReceiveTimer.Interval := _KA_RECEIVE_PERIOD_MS;
+ Self.tKAReceiveTimer.Enabled  := false;
+ Self.tKAReceiveTimer.OnTimer  := Self.OntKAReceiveTimer;
+
  Self.uLIStatusValid := false;
 end;
 
 destructor TuLI.Destroy();
 begin
+ Self.tKASendTimer.Free();
+ Self.tKAReceiveTimer.Free();
  Self.ComPort.Free();
  inherited;
 end;
@@ -350,7 +378,7 @@ begin
      $02: Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
      $03: Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
      $04: Self.WriteLog(tllCommands, 'GET: OK');
-     $05: Self.WriteLog(tllCommands, 'GET: keep-alive');
+     $05: Self.WriteLog(tllChanges, 'GET: keep-alive');
      $06: Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
      $07: Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
      $08: Self.WriteLog(tllErrors, 'ERR: GET: USB parity error');
@@ -361,10 +389,29 @@ begin
 
   $11: begin
     // uLI-master status response
-
+    Self.WriteLog(tllCommands, 'GET: master status');
+    Self.ParseuLIStatus(msg);
   end;
  end;//case msg.data[1]
 end;//procedure
+
+procedure TuLI.ParseuLIStatus(var msg:TBuffer);
+var new:TuLIStatus;
+begin
+ new.transistor     := boolean(msg.data[2] and 1);
+ new.sense          := boolean((msg.data[2] shr 1) and 1);
+ new.aliveReceiving := boolean((msg.data[2] shr 2) and 1);
+ new.aliveSending   := boolean((msg.data[2] shr 3) and 1);
+
+ // prijimani a odesilani schvalne obraceno
+ // (v recordu jsou data z pohledu uLI-master, timery jsou z pohledu SW v pocitaci)
+ Self.tKASendTimer.Enabled    := new.aliveReceiving;
+ Self.tKAReceiveTimer.Enabled := new.aliveSending;
+ Self.KAreceiveTimeout := 0;
+
+ Self.uLIStatus      := new;
+ Self.uLIStatusValid := true;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -475,6 +522,39 @@ begin
  for i := 0 to Result.Count-1 do
    Result.data[i] := ord(str[i+1]);
 end;//function
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.OntKASendTimer(Sender:TObject);
+begin
+ Self.SendKeepAlive();
+end;
+
+procedure TuLI.OntKAReceiveTimer(Sender:TObject);
+begin
+ Inc(Self.KAreceiveTimeout);
+ if (Self.KAreceiveTimeout > _KA_RECEIVE_TIMEOUT_TICKS) then
+  begin
+   // uLI-master neodpovedelo -> co delat?
+   // TODO
+  end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SendKeepAlive();
+begin
+ Self.WriteLog(tllChanges, 'SEND: keep-alive');
+ Self.Send(CreateBuf(#$A0+#$01+#$05));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 
