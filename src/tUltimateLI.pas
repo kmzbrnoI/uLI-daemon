@@ -6,11 +6,9 @@ unit tUltimateLI;
 
 interface
 
-uses SysUtils, CPort, Forms;
+uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows;
 
 type
-  TTrkLogLevel = (tllNo = 0, tllErrors = 1, tllCommands = 2, tllData = 3, tllChanges = 4, tllDetail = 5);
-
   TBuffer = record
    data:array [0..255] of Byte;
    Count:Integer;
@@ -33,6 +31,8 @@ type
       _BUF_IN_TIMEOUT_MS = 300;                                                 // timeout vstupniho bufferu v ms (po uplynuti timeoutu dojde k vymazani bufferu) - DULEZITY SAMOOPRAVNY MECHANISMUS!
                                                                                 // pro spravnou funkcnost musi byt < _TIMEOUT_MSEC
 
+      _DEVICE_DESCRIPTION = 'uLI - master';
+
     private
      ComPort:TComPort;
 
@@ -41,6 +41,11 @@ type
 
      uLIStatusValid: boolean;
      uLIStatus: TuLIStatus;
+
+     fLogLevel: TuLILogLevel;
+
+     // events
+     fOnLog: TuLILogEvent;
 
       procedure OnComError(Sender: TObject; Errors: TComErrors);
       procedure OnComException(Sender: TObject;
@@ -57,9 +62,13 @@ type
       procedure ParseDeviceMsg(deviceAddr:Byte; var msg: TBuffer);
       procedure ParseuLIMsg(var msg: TBuffer);
 
-      procedure WriteLog(lvl:TTrkLogLevel; msg:string);
+      procedure WriteLog(lvl:TuLILogLevel; msg:string);
 
-      procedure Send(data:RawByteString);
+      procedure Send(data:TBuffer);
+
+      procedure SetLogLevel(new:TuLILogLevel);
+
+      function CreateBuf(str:ShortString):TBuffer;
 
     public
 
@@ -68,6 +77,13 @@ type
 
       procedure Open(port:string);
       procedure Close();
+
+      procedure EnumDevices(const Ports: TStringList);
+
+      procedure SetStatus(new:TuLIStatus);
+
+      property OnLog: TuLILogEvent read fOnLog write fOnLog;
+      property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
 
   end;
 
@@ -107,9 +123,10 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.WriteLog(lvl:TTrkLogLevel; msg:string);
+procedure TuLI.WriteLog(lvl:TuLILogLevel; msg:string);
 begin
- // TODO
+ if ((lvl <= Self.logLevel) and (Assigned(Self.OnLog))) then
+   Self.OnLog(self, lvl, msg);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,7 +151,7 @@ end;
 
 procedure TuLI.ComAfterOpen(Sender:TObject);
 begin
-
+ Self.WriteLog(tllCommands, 'OPEN OK');
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
@@ -144,6 +161,7 @@ end;
 
 procedure TuLI.ComAfterClose(Sender:TObject);
 begin
+ Self.WriteLog(tllCommands, 'CLOSE OK');
  Self.uLIStatusValid := false;
 end;
 
@@ -153,6 +171,8 @@ procedure TuLI.Open(port:string);
 begin
  if (Self.ComPort.Connected) then Exit();
  Self.ComPort.Port := port;
+
+ Self.WriteLog(tllCommands, 'OPENING port='+port+' br='+BaudRateToStr(Self.ComPort.BaudRate)+' sb='+StopBitsToStr(Self.ComPort.StopBits)+' db='+DataBitsToStr(Self.ComPort.DataBits)+' fc='+FlowControlToStr(Self.ComPort.FlowControl.FlowControl));
 
  try
    Self.ComPort.Open();
@@ -169,6 +189,8 @@ end;
 procedure TuLI.Close();
 begin
  if (not Self.ComPort.Connected) then Exit();
+
+ Self.WriteLog(tllCommands, 'CLOSING');
 
  try
    Self.ComPort.Close();
@@ -349,7 +371,7 @@ end;//procedure
 // Tato funkce funguje jako blokujici.
 // Z funkce je vyskoceno ven az po odeslani dat (nebo vyjimce).
 // Tato funckce ocekava vstupni data bez XORu na konci (prida ho sama).
-procedure TuLI.Send(data:RawByteString);
+procedure TuLI.Send(data:TBuffer);
 var
   x: byte;
   i: integer;
@@ -361,7 +383,7 @@ begin
     Self.WriteLog(tllErrors, 'PUT ERR: XpressNet not connected');
     Exit;
    end;
-  if (Length(data) > 18) then
+  if (data.Count > 18) then
    begin
     Self.WriteLog(tllErrors, 'PUT ERR: Message too long');
     Exit;
@@ -369,17 +391,18 @@ begin
 
   //xor
   x := 0;
-  for i := 1 to Length(data)-1 do x := x xor ord(data[i]);
-  data := data + RawByteString(chr(x));
+  for i := 1 to data.Count-1 do x := x xor data.data[i];
+  Inc(data.Count);
+  data.data[data.Count-1] := x;
 
   //get string for log
   log := '';
-  for i := 0 to Length(data)-1 do log := log + IntToHex(ord(data[i]),2) + ' ';
+  for i := 0 to data.Count-1 do log := log + IntToHex(data.data[i],2) + ' ';
   Self.WriteLog(tllData, 'PUT: '+log);
 
   try
     InitAsync(asp);
-    Self.ComPort.WriteAsync(data, Length(data), asp);
+    Self.ComPort.WriteAsync(data.data, data.Count, asp);
     while (not Self.ComPort.IsAsyncCompleted(asp)) do
      begin
       Application.ProcessMessages();
@@ -396,6 +419,62 @@ begin
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SetLogLevel(new:TuLILogLevel);
+begin
+ Self.fLogLevel := new;
+ Self.WriteLog(tllCommands, 'NEW LOGLEVEL: '+IntToStr(Integer(new)));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.EnumDevices(const Ports: TStringList);
+var
+  nInd:  Integer;
+begin  { EnumComPorts }
+  with  TRegistry.Create(KEY_READ)  do
+    try
+      RootKey := HKEY_LOCAL_MACHINE;
+      if  OpenKey('hardware\devicemap\serialcomm', False)  then
+        try
+          Ports.BeginUpdate();
+          try
+            GetValueNames(Ports);
+            for  nInd := Ports.Count - 1  downto  0  do
+              Ports.Strings[nInd] := ReadString(Ports.Strings[nInd]);
+            Ports.Sort()
+          finally
+            Ports.EndUpdate()
+          end { try-finally }
+        finally
+          CloseKey()
+        end { try-finally }
+      else
+        Ports.Clear()
+    finally
+      Free()
+    end { try-finally }
+end { EnumComPorts };
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SetStatus(new:TuLIStatus);
+var data:Byte;
+begin
+ data := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
+          (Integer(new.aliveSending) shl 3);
+ Self.Send(CreateBuf(ShortString(#$A0+#$11+AnsiChar(data))));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.CreateBuf(str:ShortString):TBuffer;
+var i:Integer;
+begin
+ Result.Count := Length(str);
+ for i := 0 to Result.Count-1 do
+   Result.data[i] := ord(str[i+1]);
+end;//function
 
 ////////////////////////////////////////////////////////////////////////////////
 

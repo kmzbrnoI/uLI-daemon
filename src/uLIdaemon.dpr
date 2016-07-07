@@ -7,7 +7,9 @@ uses
   SysUtils,
   fMain in 'fMain.pas' {F_Main},
   Verze in 'Verze.pas',
-  tUltimateLI in 'tUltimateLI.pas';
+  tUltimateLI in 'tUltimateLI.pas',
+  fDebug in 'fDebug.pas' {F_Debug},
+  tUltimateLIConst in 'tUltimateLIConst.pas';
 
 {$R *.res}
 
@@ -30,5 +32,6 @@ begin
   Application.MainFormOnTaskbar := True;
   Application.Title := 'uLI-daemon';
   Application.CreateForm(TF_Main, F_Main);
+  Application.CreateForm(TF_Debug, F_Debug);
   Application.Run;
 end.
