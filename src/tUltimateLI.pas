@@ -51,9 +51,9 @@ type
       _SLOTS_CNT = 6;
       _DEFAULT_DCC = true;
 
-      _BROADCAST_HEADER = #$60;
-      _CMD_DCC_ON = #$61#$01;
-      _CMD_DCC_OFF = #$61#$00;
+      _BROADCAST_HEADER : ShortString = #$60;
+      _CMD_DCC_ON : ShortString = #$61#$01;
+      _CMD_DCC_OFF : ShortString = #$61#$00;
 
     private
      ComPort: TComPort;
@@ -416,6 +416,26 @@ begin
          Self.WriteLog(tllCommands, 'GET: command station status request');
          Self.WriteLog(tllCommands, 'SEND: command station staus');
          Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$62+#$22+(char(not Self.DCC)))));
+       end;
+
+       $81: begin
+         Self.WriteLog(tllCommands, 'GET: resume operations request');
+         Self.WriteLog(tllCommands, 'PUT: GO');
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+       end;
+
+       $80: begin
+         Self.WriteLog(tllCommands, 'GET: STOP operations request');
+
+         // TODO: zastavit hnaci vozidlo
+
+         Self.WriteLog(tllCommands, 'PUT: STOP');
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
+         Self.WriteLog(tllCommands, 'PUT: GO');
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
        end;
      end;// case msg.data[2]
    end;//$21
