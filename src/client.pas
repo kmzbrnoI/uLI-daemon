@@ -110,9 +110,9 @@ implementation
                                            dale v protokolu je pouzivano pouze ID
 
  -;LOK;G:PLEASE-RESP;[ok, err];info      - odpoved na zadost o lokomotivu z reliefu; v info je pripadna chybova zprava
- -;LOK;G;AUTH;[ok,not,total];info        - navratove hlaseni o autorizaci uzivatele
- -;LOK;addr;AUTH;[ok,not,stolen,release];info;hv_data
-                                        - odpoved na pozadavek o autorizaci rizeni hnaciho vozidla (odesilano take jako informace o zruseni ovladani hnacicho vozidla)
+ -;LOK;G;AUTH;[ok,not];info              - navratove hlaseni o autorizaci uzivatele
+ -;LOK;addr;AUTH;[ok,not,stolen,release,total];info;hv_data
+                                         - odpoved na pozadavek o autorizaci rizeni hnaciho vozidla (odesilano take jako informace o zruseni ovladani hnacicho vozidla)
                                            info je string
                                            hv_data jsou pripojovana k prikazu v pripade, ze doslo uspesne k autorizaci; jedna se o PanelString hnaciho vozdila obsahujici vsechny informace o nem
  -;LOK;addr;F;F_left-F_right;states      - informace o stavu funkci lokomotivy
