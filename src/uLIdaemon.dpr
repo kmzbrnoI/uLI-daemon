@@ -13,7 +13,8 @@ uses
   client in 'client.pas',
   listeningThread in 'listeningThread.pas',
   Hash in 'Hash.pas',
-  ORList in 'ORList.pas';
+  ORList in 'ORList.pas',
+  server in 'server.pas';
 
 {$R *.res}
 

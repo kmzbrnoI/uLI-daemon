@@ -252,8 +252,8 @@ begin
  // update okynka
  F_Main.A_ServerConnect.Enabled    := false;
  F_Main.A_ServerDisconnect.Enabled := true;
- F_Main.S_Server.Brush.Color       := clYellow;
- F_Main.S_Server.Hint              := 'Probíhá handshake...';
+ F_Main.S_Client.Brush.Color       := clYellow;
+ F_Main.S_Client.Hint              := 'Probíhá handshake...';
 
  Self.fstatus := TPanelConnectionStatus.handshake;
 
@@ -272,8 +272,8 @@ begin
  // aktualizace okynka
  F_Main.A_ServerConnect.Enabled    := true;
  F_Main.A_ServerDisconnect.Enabled := false;
- F_Main.S_Server.Brush.Color       := clRed;
- F_Main.S_Server.Hint              := 'Odpojeno od serveru';
+ F_Main.S_Client.Brush.Color       := clRed;
+ F_Main.S_Client.Hint              := 'Odpojeno od serveru';
 
  // TODO: zavrit vsechna dalsi okna
 

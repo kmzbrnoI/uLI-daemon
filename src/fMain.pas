@@ -37,6 +37,7 @@ type
   public
 
     S_Server : TShape;
+    S_Client : TShape;
     close_app : boolean;
 
 
@@ -161,8 +162,8 @@ end;
 
 procedure TF_Main.CreateShapes();
 begin
- S_Server := TShape.Create(SB_Main);
- with (S_Server) do
+ S_Client := TShape.Create(SB_Main);
+ with (S_Client) do
   begin
    Parent := SB_Main;
    Left := 1;
@@ -171,6 +172,19 @@ begin
    Width := 30;
    ShowHint := true;
    Hint := 'Odpojeno od serveru';
+   Brush.Color := clRed;
+  end;
+
+ S_Server := TShape.Create(SB_Main);
+ with (S_Server) do
+  begin
+   Parent := SB_Main;
+   Left := 32;
+   Top  := 2;
+   Height := 16;
+   Width := 30;
+   ShowHint := true;
+   Hint := 'Server zastaven';
    Brush.Color := clRed;
   end;
 end;

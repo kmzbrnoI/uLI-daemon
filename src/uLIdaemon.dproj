@@ -54,6 +54,7 @@
 			<DCCReference Include="listeningThread.pas"/>
 			<DCCReference Include="Hash.pas"/>
 			<DCCReference Include="ORList.pas"/>
+			<DCCReference Include="server.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
