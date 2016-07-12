@@ -73,13 +73,14 @@ implementation
 
 {
  Jak funguje komunikace ze strany serveru:
-  TODO
+  * Klient se pripoji, posila data, server posila data.
+  * Neni vyzadovan hanshake.
+  * Server neodpojuje klienty pokud to neni nutne.
 
 }
 {
  Specifikace komunikacniho protkolu:
-  jedna se o retezec, ve kterem jsou jednotliva data oddelena strednikem
-  prvni parametr je vzdy id oblasti rizeni, popr. '-' pokud se jedna o rezijni prikaz
+  jedna se o retezec, ve kterem jsou jednotliva data oddelena strednikem.
 
  PRIKAZY:
 
@@ -87,11 +88,19 @@ implementation
 /////////////////////////// KLIENT -> SERVER ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+LOGIN;username;password                  - pozadavek k pripojeni k serveru a autorizaci regulatoru
+LOKO;addr;token;slot                     - pozadavek k umisteni loko \addr do slotu \slot
+SLOTS?                                   - pozadavek na vraceni seznamu slotu a jejich obsahu
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// SERVER -> KLIENT ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+LOKO;addr;ok                             - loko uspesne prevzato
+LOKO;addr;err_code;error message         - loko se nepodarilo prevzit
+SLOTS;[addr/-];[addr/-];...              - sloty, ktere ma daemon k dispozici
+                                           '-' je prazdny slot, \addr je adresa ve slotu
+                                           pocet slotu je variabilni
 
 }
 
