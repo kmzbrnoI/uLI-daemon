@@ -184,7 +184,7 @@ begin
    Height := 16;
    Width := 30;
    ShowHint := true;
-   Hint := 'Server zastaven';
+   Hint := 'Bridge server: vyppnut';
    Brush.Color := clRed;
   end;
 end;
