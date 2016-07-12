@@ -485,6 +485,41 @@ begin
        end;
      end;
    end;
+
+   $E4: begin
+     case (msg.data[2]) of
+      $12: begin
+        // 28 speed steps
+        Self.WriteLog(tllCommands, 'GET: locomotive set speed');
+
+        addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+            (Self.sloty[addr].HV.ukradeno)) then
+         begin
+          // lokomotiva neni rizena ovladacem
+          // -> odeslat "locomotive is being operated by another device"
+          Self.WriteLog(tllCommands, 'PUT: locomotive is being operated by another device');
+          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + #$E3 + #$40 + AnsiChar(msg.data[3]) + AnsiChar(msg.data[4])));
+         end else begin
+          // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
+
+         end;
+
+      end;
+
+      $20: begin
+        // set F0-F4
+      end;
+
+      $21: begin
+        // set F5-F8
+      end;
+
+      $22: begin
+        // set F9-F12
+      end;
+     end;// case msg.data[2]
+   end;//$E4
  end;//case msg.data[1]
 end;//procedure
 
