@@ -8,7 +8,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, tUltimateLIConst, ActnList, StdCtrls;
+  Dialogs, tUltimateLIConst, ActnList, StdCtrls, ComCtrls, ExtCtrls;
 
 type
   TF_Main = class(TForm)
@@ -20,6 +20,9 @@ type
     Memo1: TMemo;
     Button3: TButton;
     Button4: TButton;
+    SB_Main: TStatusBar;
+    A_ServerConnect: TAction;
+    A_ServerDisconnect: TAction;
     procedure FormShow(Sender: TObject);
     procedure A_DebugExecute(Sender: TObject);
     procedure Button1Click(Sender: TObject);
@@ -33,7 +36,12 @@ type
 
   public
 
+    S_Server : TShape;
+    close_app : boolean;
+
+
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
+     procedure CreateShapes();
 
   end;
 
@@ -42,7 +50,7 @@ var
 
 implementation
 
-uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX;
+uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client;
 
 {$R *.dfm}
 
@@ -124,10 +132,19 @@ begin
      sleep(1);
     end;
   end;
+
+ if ((TCPClient.status <> TPanelConnectionStatus.closed) and (not Self.close_app)) then
+  begin
+   Self.close_app := true;  // informujeme OnDisconnect, ze ma zavrit okno
+   TCPClient.Disconnect();
+   CanClose := false;       // okno zatim nezavirame, zavre se az pri OnDisconnect
+  end;
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
 begin
+ Self.CreateShapes();
+
  uLI.logLevel := tllData;
  uLI.OnLog    := Self.OnuLILog;
 end;
@@ -140,6 +157,22 @@ end;
 procedure TF_Main.OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
 begin
  if (Assigned(F_Debug)) then F_Debug.Log('uLI: '+msg);
+end;
+
+procedure TF_Main.CreateShapes();
+begin
+ S_Server := TShape.Create(SB_Main);
+ with (S_Server) do
+  begin
+   Parent := SB_Main;
+   Left := 1;
+   Top  := 2;
+   Height := 16;
+   Width := 30;
+   ShowHint := true;
+   Hint := 'Odpojeno od serveru';
+   Brush.Color := clRed;
+  end;
 end;
 
 end.//unit

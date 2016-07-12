@@ -9,7 +9,11 @@ uses
   Verze in 'Verze.pas',
   tUltimateLI in 'tUltimateLI.pas',
   fDebug in 'fDebug.pas' {F_Debug},
-  tUltimateLIConst in 'tUltimateLIConst.pas';
+  tUltimateLIConst in 'tUltimateLIConst.pas',
+  client in 'client.pas',
+  listeningThread in 'listeningThread.pas',
+  Hash in 'Hash.pas',
+  ORList in 'ORList.pas';
 
 {$R *.res}
 

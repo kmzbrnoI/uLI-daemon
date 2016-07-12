@@ -2,7 +2,7 @@ object F_Main: TF_Main
   Left = 0
   Top = 0
   Caption = 'F_Main'
-  ClientHeight = 300
+  ClientHeight = 320
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -70,6 +70,25 @@ object F_Main: TF_Main
     TabOrder = 5
     OnClick = Button4Click
   end
+  object SB_Main: TStatusBar
+    Left = 0
+    Top = 301
+    Width = 635
+    Height = 19
+    Panels = <
+      item
+        Width = 100
+      end
+      item
+        Width = 50
+      end
+      item
+        Width = 50
+      end>
+    ExplicitLeft = 288
+    ExplicitTop = 24
+    ExplicitWidth = 0
+  end
   object AL_Main: TActionList
     Left = 16
     Top = 16
@@ -77,6 +96,13 @@ object F_Main: TF_Main
       Caption = 'Debug'
       ShortCut = 115
       OnExecute = A_DebugExecute
+    end
+    object A_ServerConnect: TAction
+      Caption = 'A_ServerConnect'
+    end
+    object A_ServerDisconnect: TAction
+      Caption = 'A_ServerDisconnect'
+      Enabled = False
     end
   end
 end

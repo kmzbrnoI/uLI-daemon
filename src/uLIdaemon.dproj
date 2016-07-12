@@ -50,6 +50,10 @@
 				<Form>F_Debug</Form>
 			</DCCReference>
 			<DCCReference Include="tUltimateLIConst.pas"/>
+			<DCCReference Include="client.pas"/>
+			<DCCReference Include="listeningThread.pas"/>
+			<DCCReference Include="Hash.pas"/>
+			<DCCReference Include="ORList.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
