@@ -55,6 +55,8 @@
 			<DCCReference Include="Hash.pas"/>
 			<DCCReference Include="ORList.pas"/>
 			<DCCReference Include="server.pas"/>
+			<DCCReference Include="mausSlot.pas"/>
+			<DCCReference Include="tHnaciVozidlo.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

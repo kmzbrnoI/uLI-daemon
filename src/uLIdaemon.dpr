@@ -14,7 +14,9 @@ uses
   listeningThread in 'listeningThread.pas',
   Hash in 'Hash.pas',
   ORList in 'ORList.pas',
-  server in 'server.pas';
+  server in 'server.pas',
+  mausSlot in 'mausSlot.pas',
+  tHnaciVozidlo in 'tHnaciVozidlo.pas';
 
 {$R *.res}
 

@@ -7,7 +7,7 @@ unit tUltimateLI;
 interface
 
 uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows,
-     ExtCtrls;
+     ExtCtrls, mausSlot;
 
 type
   TBuffer = record
@@ -48,6 +48,8 @@ type
       _KA_RECEIVE_TIMEOUT_TICKS = 6;
       _KA_RECEIVE_PERIOD_MS = 500;
 
+      _SLOTS_CNT = 6;
+
     private
      ComPort: TComPort;
 
@@ -63,6 +65,8 @@ type
      uLIStatus: TuLIStatus;
 
      fLogLevel: TuLILogLevel;
+
+     sloty: array [1.._SLOTS_CNT-1] of TSlot;
 
      // events
      fOnLog: TuLILogEvent;
@@ -125,6 +129,7 @@ implementation
 ////////////////////////////////////////////////////////////////////////////////
 
 constructor TuLI.Create();
+var i:Integer;
 begin
  inherited;
 
@@ -155,10 +160,15 @@ begin
  Self.tKAReceiveTimer.OnTimer  := Self.OntKAReceiveTimer;
 
  Self.uLIStatusValid := false;
+
+ for i := 1 to _SLOTS_CNT-1 do Self.sloty[i] := TSlot.Create(i);
 end;
 
 destructor TuLI.Destroy();
+var i:Integer;
 begin
+ for i := 1 to _SLOTS_CNT-1 do FreeAndNil(Self.sloty[i]);
+
  Self.tKASendTimer.Free();
  Self.tKAReceiveTimer.Free();
  Self.ComPort.Free();
