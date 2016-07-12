@@ -41,6 +41,8 @@ type
      rychlost_kmph:Word;                                                        // aktualni rychlost v km/h
      smer:Integer;                                                              // aktualni smer
      orid:string;                                                               // id oblasti rizeni, ve ktere se nachazi loko
+     ukradeno:boolean;                                                          // jestli je loko ukradeno
+     total:boolean;                                                             // jestli je loko v totalnim rucnim rizeni
 
      POMtake : TList<THVPomCV>;                                                 // seznam POM pri prevzeti do automatu
      POMrelease : TList<THVPomCV>;                                              // seznam POM pri uvolneni to rucniho rizeni

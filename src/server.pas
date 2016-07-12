@@ -88,7 +88,7 @@ implementation
 /////////////////////////// KLIENT -> SERVER ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-LOGIN;username;password                  - pozadavek k pripojeni k serveru a autorizaci regulatoru
+LOGIN;server;port;username;password      - pozadavek k pripojeni k serveru a autorizaci regulatoru
 LOKO;addr;token;slot                     - pozadavek k umisteni loko \addr do slotu \slot
 SLOTS?                                   - pozadavek na vraceni seznamu slotu a jejich obsahu
 
@@ -112,7 +112,7 @@ SLOTS;[addr/-];[addr/-];...              - sloty, ktere ma daemon k dispozici
   TODO
 }
 
-uses fMain, fDebug;
+uses fMain, fDebug, client;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -222,6 +222,8 @@ begin
  Self.clients[i]        := TBridgeClient.Create();
  Self.clients[i].conn   := AContext;
  Self.clients[i].status := TPanelConnectionStatus.handshake;
+
+ F_Debug.Log('Bridge: client connected');
 end;//procedure
 
 // Udalost vyvolana pri odpojeni klienta
@@ -235,6 +237,8 @@ begin
     FreeAndNil(Self.clients[i]);
     break;
    end;
+
+ F_Debug.Log('Bridge: client disconnected');
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,8 +274,17 @@ end;//procedure
 
 procedure TTCPServer.Parse(AContext: TIdContext);
 begin
- { if (parsed[1] = 'STIT') then }
-end;//procedure
+ if (parsed[1] = 'LOGIN') then
+  begin
+   if (not TCPClient.authorised) then
+    begin
+     TCPClient.toAuth.username := parsed[4];
+     TCPClient.toAuth.password := parsed[5];
+
+     TCPClient.Connect(parsed[2], StrToInt(parsed[3]));
+    end;
+  end;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

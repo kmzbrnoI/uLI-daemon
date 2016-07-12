@@ -40,5 +40,13 @@ begin
   Application.Title := 'uLI-daemon';
   Application.CreateForm(TF_Main, F_Main);
   Application.CreateForm(TF_Debug, F_Debug);
+
+  try
+   TCPServer.Start();
+  except
+   on E:Exception do
+     Application.MessageBox(PChar('Nepodaøilo se nastartovat bridge server'+#13#10+e.Message), 'Chyba', MB_OK OR MB_ICONWARNING);
+  end;
+
   Application.Run;
 end.

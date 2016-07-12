@@ -49,6 +49,11 @@ type
       _KA_RECEIVE_PERIOD_MS = 500;
 
       _SLOTS_CNT = 6;
+      _DEFAULT_DCC = true;
+
+      _BROADCAST_HEADER = #$60;
+      _CMD_DCC_ON = #$61#$01;
+      _CMD_DCC_OFF = #$61#$00;
 
     private
      ComPort: TComPort;
@@ -65,8 +70,9 @@ type
      uLIStatus: TuLIStatus;
 
      fLogLevel: TuLILogLevel;
+     fDCC : boolean;
 
-     sloty: array [1.._SLOTS_CNT-1] of TSlot;
+     sloty: array [1.._SLOTS_CNT] of TSlot;
 
      // events
      fOnLog: TuLILogEvent;
@@ -100,8 +106,12 @@ type
 
       function CreateBuf(str:ShortString):TBuffer;
 
-
       procedure SetBusActive(new:boolean);
+      procedure SetDCC(new:boolean);
+
+      function LokAddrEncode(addr: Integer): Word; inline;                        // ctyrmistna adresa lokomotivy do dvou bytu
+      function LokAddrDecode(ah, al: byte): Integer; inline;                      // ctyrmistna adresa lokomotivy ze dvou bajtu do klasickeho cisla
+      function LokAddrToBuf(addr: Integer): ShortString;                          // adresa to bufferu
 
     public
 
@@ -118,6 +128,7 @@ type
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
       property busEnabled: boolean read uLIStatus.transistor write SetBusActive;
+      property DCC : boolean read fDCC write SetDCC;
 
   end;
 
@@ -160,14 +171,15 @@ begin
  Self.tKAReceiveTimer.OnTimer  := Self.OntKAReceiveTimer;
 
  Self.uLIStatusValid := false;
+ Self.fDCC := _DEFAULT_DCC;
 
- for i := 1 to _SLOTS_CNT-1 do Self.sloty[i] := TSlot.Create(i);
+ for i := 1 to _SLOTS_CNT do Self.sloty[i] := TSlot.Create(i);
 end;
 
 destructor TuLI.Destroy();
 var i:Integer;
 begin
- for i := 1 to _SLOTS_CNT-1 do FreeAndNil(Self.sloty[i]);
+ for i := 1 to _SLOTS_CNT do FreeAndNil(Self.sloty[i]);
 
  Self.tKASendTimer.Free();
  Self.tKAReceiveTimer.Free();
@@ -342,6 +354,8 @@ begin
           WriteLog(tllErrors, 'GET: PARITY ERROR, removing buffer : '+s);
          end;
 
+        // TODO: send "transfer errors" ???
+
         // remove message from buffer
         for i := 0 to Fbuf_in.Count-msg_len-1 do Fbuf_in.data[i] := Fbuf_in.data[i+msg_len];
         Fbuf_in.Count := Fbuf_in.Count - msg_len;
@@ -384,6 +398,10 @@ end;
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.ParseDeviceMsg(deviceAddr:Byte; var msg: TBuffer);
+var toSend: ShortString;
+    tmp, tmp2: Byte;
+    addr: Word;
+    i: Integer;
 begin
  case (msg.data[1]) of
    $21: begin
@@ -392,16 +410,61 @@ begin
          Self.WriteLog(tllCommands, 'GET: command station software version request');
          Self.WriteLog(tllCommands, 'SEND: command station software version');
          Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$63+#$21+#$36+#$00)));
-       end;//$21
+       end;
 
        $24: begin
-         // TODO: send track status according to real command station status
          Self.WriteLog(tllCommands, 'GET: command station status request');
          Self.WriteLog(tllCommands, 'SEND: command station staus');
-         Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$62+#$22+#$00)));
+         Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$62+#$22+(char(not Self.DCC)))));
        end;
      end;// case msg.data[2]
    end;//$21
+
+   $E3: begin
+     case (msg.data[2]) of
+       00: begin
+         Self.WriteLog(tllCommands, 'GET: locomotive information request');
+
+         toSend := AnsiChar(msg.data[0]) + #$E4;
+
+         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+         if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+             (Self.sloty[addr].HV.ukradeno)) then
+          begin
+           // lokomotiva neni rizena ovladacem
+           toSend := toSend + #$A + #$80 + #0 + #0;
+          end else begin
+           // lokomotiva je rizena ovladacem
+           toSend := toSend + #2;
+
+           // rychlost + smer
+           case (Self.sloty[addr].HV.rychlost_stupne) of
+              0: tmp2 := 0;
+              1..28: tmp2 := Self.sloty[addr].HV.rychlost_stupne+3;
+              else tmp2 := 0;
+           end;
+
+           tmp := ((Self.sloty[addr].HV.smer AND $1) shl 7) +
+                  ((tmp2 AND $1e) shr 1) +
+                  ((tmp2 AND $01) shl 4);
+
+           toSend := toSend + AnsiChar(tmp);
+
+           // F0 - F4
+           tmp := (byte(Self.sloty[addr].HV.funkce[0]) shl 4);
+           for i := 1 to 4 do tmp := tmp + (byte(Self.sloty[addr].HV.funkce[i]) shl (i-1));
+           toSend := toSend + AnsiChar(tmp);
+
+           // F5 - F12
+           for i := 5 to 12 do tmp := tmp + (byte(Self.sloty[addr].HV.funkce[i]) shl (i-5));
+           toSend := toSend + AnsiChar(tmp);
+          end;
+
+         Self.WriteLog(tllCommands, 'PUT: locomotive information');
+         Self.Send(CreateBuf(toSend));
+       end;
+     end;
+   end;
  end;//case msg.data[1]
 end;//procedure
 
@@ -616,7 +679,46 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
+procedure TuLI.SetDCC(new:boolean);
+begin
+ if (Self.fDCC = new) then Exit();
+ Self.fDCC := new;
+
+ if (Self.ComPort.Connected) then
+  begin
+   if (new) then
+    begin
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON + _BROADCAST_HEADER + _CMD_DCC_ON));
+    end else begin
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF + _BROADCAST_HEADER + _CMD_DCC_OFF));
+    end;
+  end;
+end;
+
 ////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.LokAddrEncode(addr: Integer): Word;
+begin
+  if (addr > 99) then begin
+    Result := (addr + $C000);
+   end else begin
+    Result := addr;
+  end;
+end;
+
+function TuLI.LokAddrToBuf(addr: Integer):ShortString;
+var encoded:Word;
+begin
+  encoded := Self.LokAddrEncode(addr);
+  Result := AnsiChar(Hi(encoded)) + AnsiChar(Lo(encoded));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.LokAddrDecode(ah, al: byte): Integer;
+begin
+  Result := al or ((ah AND $3F) shl 8);
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

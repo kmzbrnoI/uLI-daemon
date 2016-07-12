@@ -24,6 +24,11 @@ const
 type
   TPanelConnectionStatus = (closed, opening, handshake, opened);
 
+  TtoAuth = record
+    username: string;
+    password: string;
+  end;
+
   TTCPClient = class
    private const
     _PROTOCOL_VERSION = '1.0';                                                  // verze protokolu od klienta
@@ -49,6 +54,8 @@ type
 
    public
 
+    toAuth: TtoAuth;
+
      constructor Create();
      destructor Destroy(); override;
 
@@ -59,7 +66,7 @@ type
      procedure LokoPlease(addr:Word; token:string);                             // zadost o lokomotivu tokenem
 
       property status:TPanelConnectionStatus read fstatus;                      // aktualni stav pripojeni
-      property authorised:boolean read fauthorised;                             //true, pokud strojvedouci autorizovan
+      property authorised:boolean read fauthorised;                             // true pokud strojvedouci autorizovan
 
   end;//TPanelTCPClient
 
@@ -268,6 +275,7 @@ begin
 
  // status klienta na odpojen
  Self.fstatus := TPanelConnectionStatus.closed;
+ Self.fauthorised := false;
 
  // aktualizace okynka
  F_Main.A_ServerConnect.Enabled    := true;
