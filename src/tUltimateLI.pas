@@ -113,6 +113,8 @@ type
       function LokAddrDecode(ah, al: byte): Integer; inline;                      // ctyrmistna adresa lokomotivy ze dvou bajtu do klasickeho cisla
       function LokAddrToBuf(addr: Integer): ShortString;                          // adresa to bufferu
 
+      function FindSlot(mausAddr:Byte):Integer;
+
     public
 
       constructor Create();
@@ -122,6 +124,9 @@ type
       procedure Close();
 
       procedure EnumDevices(const Ports: TStringList);
+
+      procedure SendLokoStolen(callByte:Byte; addrHi:Byte; addrLo:Byte); overload;
+      procedure SendLokoStolen(callByte:Byte; addr:Word); overload;
 
       procedure SetStatus(new:TuLIStatus);
 
@@ -136,6 +141,8 @@ var
   uLI : TuLI;
 
 implementation
+
+uses client;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -414,7 +421,7 @@ begin
 
        $24: begin
          Self.WriteLog(tllCommands, 'GET: command station status request');
-         Self.WriteLog(tllCommands, 'SEND: command station staus');
+         Self.WriteLog(tllCommands, 'SEND: command station status');
          Self.Send(CreateBuf(ShortString(chr(msg.data[0])+#$62+#$22+(char(not Self.DCC)))));
        end;
 
@@ -433,7 +440,14 @@ begin
        $80: begin
          Self.WriteLog(tllCommands, 'GET: STOP operations request');
 
-         // TODO: zastavit hnaci vozidlo
+         // zastavit hnaci vozidlo
+         i := Self.FindSlot(msg.data[0] AND $1F);
+         if (i > -1) and (Self.sloty[i].isLoko) then
+          begin
+           Self.sloty[i].HV.rychlost_stupne := 0;
+           TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[i].HV.Adresa)+';STOP');
+           Self.SendLokoStolen(msg.data[0], i);
+          end;
 
          Self.WriteLog(tllCommands, 'PUT: STOP');
          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
@@ -499,14 +513,34 @@ begin
 
         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
         if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
-            (Self.sloty[addr].HV.ukradeno)) then
+            (not Self.sloty[addr].HV.total)) then
          begin
           // lokomotiva neni rizena ovladacem
           // -> odeslat "locomotive is being operated by another device"
-          Self.WriteLog(tllCommands, 'PUT: locomotive is being operated by another device');
-          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + #$E3 + #$40 + AnsiChar(msg.data[3]) + AnsiChar(msg.data[4])));
+          Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
+
+          Self.sloty[addr].HV.smer := 1 - ((Byte(msg.data[4]) shr 7) and $1);
+          tmp := ((msg.data[4] AND $0F) shl 1) OR ((msg.data[4] AND $10) shr 4);
+          if (tmp <= 3) then
+           begin
+            Self.sloty[addr].HV.rychlost_stupne := 0;
+
+            if (tmp = 1) then
+             begin
+              // emergency stop -> uvolnit HV ze slotu
+              Self.sloty[addr].ReleaseLoko();
+             end else begin
+              // normal stop
+              TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';SPD-S;'+
+                IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
+             end;
+           end else begin
+            Self.sloty[addr].HV.rychlost_stupne := tmp - 3;
+            TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';SPD-S;'+
+              IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
+           end;
 
          end;
 
@@ -779,6 +813,40 @@ function TuLI.LokAddrDecode(ah, al: byte): Integer;
 begin
   Result := al or ((ah AND $3F) shl 8);
 end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SendLokoStolen(callByte:Byte; addrHi:Byte; addrLo:Byte);
+begin
+ Self.WriteLog(tllCommands, 'PUT: locomotive is being operated by another device');
+ Self.Send(CreateBuf(AnsiChar(callByte) + #$E3 + #$40 + AnsiChar(addrHi) + AnsiChar(addrLo)));
+end;
+
+procedure TuLI.SendLokoStolen(callByte:Byte; addr:Word);
+var encoded:Word;
+begin
+ encoded := Self.LokAddrEncode(addr);
+ Self.SendLokoStolen(callByte, (encoded shr 8) and $FF, encoded AND $FF);
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.FindSlot(mausAddr:Byte):Integer;
+var i:Integer;
+begin
+ for i := 1 to _SLOTS_CNT do
+   if (Self.sloty[i].mausAddr = mausAddr) then
+     Exit(i);
+ Exit(-1);
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 
