@@ -564,16 +564,71 @@ begin
       end;
 
       $20: begin
-        // set F0-F4
+        Self.WriteLog(tllCommands, 'GET: set F0-F4');
+
+        addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
+         begin
+          // lokomotiva neni rizena ovladacem
+          // -> odeslat "locomotive is being operated by another device"
+          Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+         end else begin
+          // lokomotiva je rizena ovladacem -> nastavit funkce
+          Self.sloty[addr].HV.funkce[0] := boolean((msg.data[5] shr 4) and $1);
+          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+1] := boolean((msg.data[5] shr i) and $1);
+          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;0-4;'+Self.sloty[addr].HV.SerializeFunctions(0,4));
+         end;
       end;
 
       $21: begin
-        // set F5-F8
+        Self.WriteLog(tllCommands, 'GET: set F5-F8');
+
+        addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
+         begin
+          // lokomotiva neni rizena ovladacem
+          // -> odeslat "locomotive is being operated by another device"
+          Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+         end else begin
+          // lokomotiva je rizena ovladacem -> nastavit funkce
+          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+5] := boolean((msg.data[5] shr i) and $1);
+          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;5-8;'+Self.sloty[addr].HV.SerializeFunctions(5,8));
+         end;
       end;
 
       $22: begin
-        // set F9-F12
+        Self.WriteLog(tllCommands, 'GET: set F9-F12');
+
+        addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+            (not Self.sloty[addr].HV.total)) then
+         begin
+          // lokomotiva neni rizena ovladacem
+          // -> odeslat "locomotive is being operated by another device"
+          Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+         end else begin
+          // lokomotiva je rizena ovladacem -> nastavit funkce
+          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+9] := boolean((msg.data[5] shr i) and $1);
+          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;9-12;'+Self.sloty[addr].HV.SerializeFunctions(9,12));
+         end;
       end;
+
+      $F3: begin
+        Self.WriteLog(tllCommands, 'GET: set F13-F20');
+
+        addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
+         begin
+          // lokomotiva neni rizena ovladacem
+          // -> odeslat "locomotive is being operated by another device"
+          Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+         end else begin
+          // lokomotiva je rizena ovladacem -> nastavit funkce
+          for i := 0 to 7 do Self.sloty[addr].HV.funkce[i+13] := boolean((msg.data[5] shr i) and $1);
+          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;13-20;'+Self.sloty[addr].HV.SerializeFunctions(13,20));
+         end;
+      end;
+
      end;// case msg.data[2]
    end;//$E4
  end;//case msg.data[1]

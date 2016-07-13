@@ -54,6 +54,8 @@ type
      destructor Destroy(); override;                                            // zniceni HV
 
      function GetPanelLokString():string;                                       // vytvoreni stringu obsahujici vsechna data HV pro server
+
+     function SerializeFunctions(start,fin:Integer):string;
   end;
 
 implementation
@@ -206,6 +208,21 @@ begin
 
  Result := Result + '||||'+Self.orid+'|';
 end;//function
+
+////////////////////////////////////////////////////////////////////////////////
+
+function THV.SerializeFunctions(start,fin:Integer):string;
+var i:Integer;
+begin
+ Result := '';
+ for i := start to fin do
+  begin
+   case (Self.funkce[i]) of
+    false : Result := Result + '0';
+    true  : Result := Result + '1';
+   end;
+  end;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
