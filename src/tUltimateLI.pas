@@ -507,6 +507,7 @@ begin
            toSend := toSend + AnsiChar(tmp);
 
            // F5 - F12
+           tmp := 0;
            for i := 5 to 12 do tmp := tmp + (byte(Self.sloty[addr].HV.funkce[i]) shl (i-5));
            toSend := toSend + AnsiChar(tmp);
           end;
@@ -919,12 +920,14 @@ end;
 function TuLI.CalcParity(data:Byte):Byte;
 var i:Integer;
     parity:boolean;
+    tmp:Byte;
 begin
+ tmp := data;
  parity := false;
  for i := 0 to 7 do
   begin
-   if (data AND $1 > 0) then parity := not parity;
-   data := data shr 1;
+   if ((tmp AND $1) > 0) then parity := not parity;
+   tmp := tmp shr 1;
   end;
  if (parity) then
    Result := data + $80
