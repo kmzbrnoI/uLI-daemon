@@ -470,7 +470,7 @@ begin
       uLI.sloty[slot].HV.ukradeno := true;
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'release') then begin
-      uLI.sloty[slot].HV.Free();
+      FreeAndNil(uLI.sloty[slot].HV);
       Self.lokToSlotMap.Remove(addr);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end;

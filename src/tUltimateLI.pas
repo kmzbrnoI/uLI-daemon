@@ -476,7 +476,7 @@ begin
 
          addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
 
-         if ((addr >= 1) or (addr <= _SLOTS_CNT)) then
+         if (((addr >= 1) or (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
 
          if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
@@ -486,7 +486,7 @@ begin
            toSend := toSend + #$A + #$80 + #0 + #0;
           end else begin
            // lokomotiva je rizena ovladacem
-           toSend := toSend + #2;
+           toSend := toSend + AnsiChar(2 + Byte(Self.sloty[addr].mausId <> (msg.data[0] AND $1F)) shl 3);
 
            // rychlost + smer
            case (Self.sloty[addr].HV.rychlost_stupne) of
@@ -525,6 +525,13 @@ begin
         Self.WriteLog(tllCommands, 'GET: locomotive set speed');
 
         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+
+        if (((addr >= 1) or (addr <= _SLOTS_CNT)) and ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
+         begin
+          if (Self.sloty[addr].isMaus) then Self.SendLokoStolen(CalcParity(Self.sloty[addr].mausId + $60), addr);
+          Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+         end;
+
         if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
             (not Self.sloty[addr].HV.total)) then
          begin
@@ -540,7 +547,7 @@ begin
            begin
             Self.sloty[addr].HV.rychlost_stupne := 0;
 
-            if (tmp = 1) then
+            if (tmp = 2) then
              begin
               // emergency stop -> uvolnit HV ze slotu
               Self.sloty[addr].ReleaseLoko();
@@ -553,12 +560,6 @@ begin
             Self.sloty[addr].HV.rychlost_stupne := tmp - 3;
             TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';SPD-S;'+
               IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
-           end;
-
-          if ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId) then
-           begin
-            if (Self.sloty[addr].isMaus) then Self.SendLokoStolen(CalcParity(Self.sloty[addr].mausId), addr);
-            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
            end;
          end;
 
