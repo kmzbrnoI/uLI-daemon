@@ -48,12 +48,14 @@ type
       _KA_RECEIVE_TIMEOUT_TICKS = 6;
       _KA_RECEIVE_PERIOD_MS = 500;
 
-      _SLOTS_CNT = 6;
       _DEFAULT_DCC = true;
 
       _BROADCAST_HEADER : ShortString = #$60;
       _CMD_DCC_ON : ShortString = #$61#$01;
       _CMD_DCC_OFF : ShortString = #$61#$00;
+
+    public const
+      _SLOTS_CNT = 6;
 
     private
      ComPort: TComPort;
@@ -71,8 +73,6 @@ type
 
      fLogLevel: TuLILogLevel;
      fDCC : boolean;
-
-     sloty: array [1.._SLOTS_CNT] of TSlot;
 
      // events
      fOnLog: TuLILogEvent;
@@ -117,6 +117,8 @@ type
 
     public
 
+     sloty: array [1.._SLOTS_CNT] of TSlot;
+
       constructor Create();
       destructor Destroy(); override;
 
@@ -129,6 +131,8 @@ type
       procedure SendLokoStolen(callByte:Byte; addr:Word); overload;
 
       procedure SetStatus(new:TuLIStatus);
+
+      function CalcParity(data:Byte):Byte;
 
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
@@ -542,6 +546,11 @@ begin
               IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
            end;
 
+          if ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId) then
+           begin
+            if (Self.sloty[addr].isMaus) then Self.SendLokoStolen(CalcParity(Self.sloty[addr].mausId), addr);
+            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+           end;
          end;
 
       end;
@@ -841,6 +850,22 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.CalcParity(data:Byte):Byte;
+var i:Integer;
+    parity:boolean;
+begin
+ parity := false;
+ for i := 0 to 7 do
+  begin
+   if (data AND $1 > 0) then parity := not parity;
+   data := data shr 1;
+  end;
+ if (parity) then
+   Result := data + $80
+ else
+   Result := data;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
