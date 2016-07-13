@@ -420,9 +420,14 @@ begin
 
        $81: begin
          Self.WriteLog(tllCommands, 'GET: resume operations request');
+
          Self.WriteLog(tllCommands, 'PUT: GO');
          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+
+         Self.WriteLog(tllCommands, 'PUT: STOP');
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
+         Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
        end;
 
        $80: begin
