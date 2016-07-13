@@ -98,8 +98,10 @@ SLOTS?                                   - pozadavek na vraceni seznamu slotu a 
 
 LOKO;addr;ok                             - loko uspesne prevzato
 LOKO;addr;err_code;error message         - loko se nepodarilo prevzit
-SLOTS;[addr/-];[addr/-];...              - sloty, ktere ma daemon k dispozici
-                                           '-' je prazdny slot, \addr je adresa ve slotu
+SLOTS;[addr/-/#];[addr/-/#];...          - sloty, ktere ma daemon k dispozici
+                                           '-' je prazdny slot
+                                           '#' je nefunkcni slot
+                                           \addr je adresa v plnem slotu
                                            pocet slotu je variabilni
 
 }
@@ -112,7 +114,7 @@ SLOTS;[addr/-];[addr/-];...              - sloty, ktere ma daemon k dispozici
   TODO
 }
 
-uses fMain, fDebug, client;
+uses fMain, fDebug, client, tUltimateLI;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -260,8 +262,6 @@ begin
  Self.parsed.Clear();
  ExtractStringsEx([';'], [#13, #10], data, Self.parsed);
 
- if (Self.parsed.Count > 1) then Self.parsed[1] := UpperCase(Self.parsed[1]); 
-
  try
    Self.Parse(AContext);
  except
@@ -273,17 +273,75 @@ end;//procedure
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.Parse(AContext: TIdContext);
+var slot, i:Integer;
+    tmp:string;
 begin
- if (parsed[1] = 'LOGIN') then
-  begin
+ if (parsed[0] = 'LOGIN') then begin
    if (not TCPClient.authorised) then
     begin
-     TCPClient.toAuth.username := parsed[4];
-     TCPClient.toAuth.password := parsed[5];
+     TCPClient.toAuth.username := parsed[3];
+     TCPClient.toAuth.password := parsed[4];
 
-     TCPClient.Connect(parsed[2], StrToInt(parsed[3]));
+     TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
     end;
-  end;
+ end else if (parsed[0] = 'LOKO') then begin
+   // LOKO;addr;token;slot
+   if (not TCPClient.authorised) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';1;uLI-daemon neautorizovan vuci hJOPserveru');
+     Exit();
+    end;
+   if (not uLI.connected) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';2;uLI-daemon nepripojen k uLI-master');
+     Exit();
+    end;
+   if (not uLI.status.sense) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';3;uLI-master neni napajen');
+     Exit();
+    end;
+
+   slot := StrToInt(parsed[3]);
+   if ((slot < 0) or (slot > uLI._SLOTS_CNT)) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';4;Slot mimo povoleny rozsah slotu');
+     Exit();
+    end;
+   if (not uLI.sloty[slot].isMaus) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';5;Rocomaus s timto cislem slotu neni pripojena k uLI');
+     Exit();
+    end;
+   if (uLI.sloty[slot].isLoko) then
+    begin
+     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';6;Slot '+parsed[3]+' obsazen');
+     Exit();
+    end;
+
+   TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(parsed[1]), slot);
+   TCPClient.SendLn('-;LOK;'+parsed[1]+';PLEASE;'+parsed[2]);
+
+ end else if (parsed[0] = 'SLOTS?') then begin
+   if ((not TCPClient.authorised) or (not uLI.connected) or (not uLI.status.sense)) then
+    begin
+     // SLOTS;[addr/-/#];[addr/-/#];...
+     Self.SendLn(AContext, 'SLOTS;');
+    end else begin
+     tmp := '';
+     for i := 1 to uLI._SLOTS_CNT do
+      begin
+       if (uLI.sloty[i].isMaus) then begin
+         if (uLI.sloty[i].isLoko) then
+           tmp := tmp + IntToStr(uLI.sloty[i].HV.Adresa) + ';'
+         else
+           tmp := tmp + '-;'
+       end else
+         tmp := tmp + '#;';
+      end;
+     Self.SendLn(AContext, 'SLOTS;' + tmp);
+    end;//else no slots
+ end;//"SLOTS?"
 end;
 
 ////////////////////////////////////////////////////////////////////////////////

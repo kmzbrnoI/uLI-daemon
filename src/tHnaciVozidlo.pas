@@ -66,6 +66,8 @@ begin
  Self.POMtake    := TList<THVPomCv>.Create();
  Self.POMrelease := TList<THVPomCv>.Create();
  Self.ParseData(data);
+ Self.ukradeno := false;
+ Self.total    := false;
 end;//ctor
 
 destructor THV.Destroy();

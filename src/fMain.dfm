@@ -59,7 +59,6 @@ object F_Main: TF_Main
     Height = 25
     Caption = 'Open'
     TabOrder = 4
-    OnClick = Button3Click
   end
   object Button4: TButton
     Left = 472
@@ -85,9 +84,6 @@ object F_Main: TF_Main
       item
         Width = 50
       end>
-    ExplicitLeft = 288
-    ExplicitTop = 24
-    ExplicitWidth = 0
   end
   object AL_Main: TActionList
     Left = 16

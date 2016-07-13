@@ -49,12 +49,14 @@ type
      procedure Timeout();   // timeout from socket = broken pipe                // event timeoutu cteciho vlakna (spojeni se serverem rozvbto)
 
      // data se predavaji v Self.Parsed
-     procedure ParseLokGlobal();                                                // parsing dat s prefixem "-;LOK;"
+     procedure ParseLokGlobal();                                                // parsing dat s prefixem "-;LOK;G"
      procedure ParseGlobal();                                                   // parsing dat s prefixem "-;"
+     procedure ParseLok();                                                      // parsing dat s prefixem "-;LOK;addr"
 
    public
 
     toAuth: TtoAuth;
+    lokToSlotMap: TDictionary<Word, Byte>;
 
      constructor Create();
      destructor Destroy(); override;
@@ -153,7 +155,7 @@ implementation
 
 }
 
-uses fDebug, fMain, ORList;
+uses fDebug, fMain, ORList, tUltimateLI, tHnaciVozidlo;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -172,6 +174,8 @@ begin
  Self.tcpClient.OnDisconnected := Self.OnTcpClientDisconnected;
  Self.tcpClient.ConnectTimeout := 1500;
 
+ Self.lokToSlotMap := TDictionary<Word, Byte>.Create();
+
  // aktualni status = zavrene spojeni
  Self.fstatus := TPanelConnectionStatus.closed;
 end;//ctor
@@ -183,6 +187,8 @@ begin
 
  if (Assigned(Self.parsed)) then
    FreeAndNil(Self.parsed);
+
+ Self.lokToSlotMap.Free();
 
  inherited;
 end;//dtor
@@ -283,7 +289,8 @@ begin
  F_Main.S_Client.Brush.Color       := clRed;
  F_Main.S_Client.Hint              := 'Odpojeno od serveru';
 
- // TODO: zavrit vsechna dalsi okna
+ // vypnout Rocomaus
+ uLI.busEnabled := false;
 
  // flag ukoncovani aplikace
  // zavreni aplikace totiz ve skutecnosti nezavre aplikaci, ale nastavi
@@ -317,7 +324,7 @@ begin
        if (Self.parsed[2] = 'G') then
         Self.ParseLokGlobal()
        else
-        asm nop; end; // TODO
+        Self.ParseLok();
      end else
        Self.ParseGlobal();
     end;
@@ -360,31 +367,23 @@ begin
        'Upozornìní', MB_OK OR MB_ICONWARNING);
 
    Self.fstatus := TPanelConnectionStatus.opened;
-   F_Main.SB_Main.Panels[0].Text := 'Pøipojeno k serveru';
-   F_Main.SB_Main.Panels[1].Text := 'Probíhá autorizace...';
+   F_Main.S_Client.Hint := 'Pøipojeno k serveru, probíhá autorizace...';
 
    // ziskame seznam oblasti rizeni (to muzeme i bez autorizace)
-   Self.SendLn('-;OR-LIST;');
+   //Self.SendLn('-;OR-LIST;');
 
-   // Autorizace strojvedouciho TODO
-   { if (GlobConfig.data.args.username <> '') then
-    // nejprve zkontrolujeme, jestli nam nekdo nepredal username a pasword argumenty
-    Self.SendLn('-;LOK;G;AUTH;' + GlobConfig.data.args.username + ';' + GlobConfig.data.args.password)
-   else if (GlobConfig.data.auth.username <> '') then
-    // pokud neni predano arguemnty, zkontrolujeme, jestli neni ulozeno
-    Self.SendLn('-;LOK;G;AUTH;' + GlobConfig.data.auth.username + ';' + GlobConfig.data.auth.password)
-   else begin
-    // pokud nemame odkud ziskat login, zobrazime okynko
-    F_Auth.OpenForm('Autorizujte se');
-    Self.SendLn('-;LOK;G;AUTH;' + F_Auth.E_username.Text + ';' + GenerateHash(AnsiString(F_Auth.E_Password.Text)));
-    F_Main.SB_Main.Panels[1].Text := 'Odeslán požadavek na autorizaci...';
-   end; }
+   // autorizace strojvedouciho
+   Self.SendLn('-;LOK;G;AUTH;' + Self.toAuth.username + ';' + Self.toAuth.password);
   end
 
  else if (parsed[1] = 'OR-LIST') then
   begin
    ORDb.Parse(parsed[2]);
    //F_NewLoko.FillStanice(); TODO
+  end
+ else if (parsed[1] = 'DCC') then
+  begin
+   uLI.DCC := (parsed[2] = 'GO');
   end;
 
 end;//procedure
@@ -396,32 +395,21 @@ procedure TTCPClient.ParseLokGlobal();
 begin
  if (parsed[3] = 'AUTH') then
   begin
-   // autorizace konkretni lokomotivy
+   // autorizace uzivatele
    Self.fauthorised := (LowerCase(Self.parsed[4]) = 'ok');
    if (Self.fauthorised) then
     begin
-     F_Main.SB_Main.Panels[1].Text := 'Autorizováno';
+     F_Main.S_Client.Hint := 'Pøipojeno k serveru, autorizováno';
+     F_Main.S_Client.Brush.Color := clGreen;
 
-     // TODO
-     { if (Self.first_connection) then
-      begin
-       // prvni pripojeni -> otevreme loko z argumentu
-       if (GlobConfig.data.args.loks.Count > 0) then
-        begin
-         for loko in GlobConfig.data.args.loks do
-          Self.LokoPlease(loko.addr, loko.token);
-        end else begin
-         F_Settings.Close();
-         F_NewLoko.Show();
-        end;
-      end else begin
-       F_Settings.Close();
-       F_NewLoko.Show();
-      end;
-     Self.first_connection := false; }
+     // spojedni se serverem uspesne navazano -> zapinam Rocomaus
+     uLI.busEnabled := true;
+
     end else begin
-     //RegColl.CloseAll(); TODO
-     F_Main.SB_Main.Panels[1].Text := 'NEAUTORIZOVÁNO : '+parsed[5];
+     F_Main.S_Client.Hint := 'Pøipojeno k serveru, NEAUTORIZOVÁNO : '+parsed[5];
+     F_Main.S_Client.Brush.Color := clRed;
+     Application.MessageBox(PChar('Nepodaøilo se autoriivat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
+     Self.Disconnect();
     end;
   end else//if parsed[3] = AUTH
 
@@ -434,6 +422,67 @@ begin
      F_NewLoko.ServerResponse(parsed[4] = 'ok', ''); }
   end;
 end;//procedure
+
+////////////////////////////////////////////////////////////////////////////////
+
+{
+ -;LOK;addr;AUTH;[ok,not,stolen,release,total];info;hv_data
+                                         - odpoved na pozadavek o autorizaci rizeni hnaciho vozidla (odesilano take jako informace o zruseni ovladani hnacicho vozidla)
+                                           info je string
+                                           hv_data jsou pripojovana k prikazu v pripade, ze doslo uspesne k autorizaci; jedna se o PanelString hnaciho vozdila obsahujici vsechny informace o nem
+ -;LOK;addr;F;F_left-F_right;states      - informace o stavu funkci lokomotivy
+   napr.; or;LOK;0-4;00010 informuje, ze je zaple F3 a F0, F1, F2 a F4 jsou vyple
+ -;LOK;addr;SPD;sp_km/h;sp_stupne;dir    - informace o zmene rychlosti (ci smeru) lokomotivy
+ -;LOK;addr;RESP;[ok, err];info;speed_kmph
+
+}
+
+procedure TTCPClient.ParseLok();
+var addr:Word;
+    slot:Byte;
+begin
+ addr := StrToInt(parsed[2]);
+
+ if (parsed[3] = 'AUTH') then begin
+   if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
+   slot := Self.lokToSlotMap[addr];
+
+   if (not uLI.sloty[slot].isLoko) then
+    begin
+     // prirazeni nove loko do slotu
+     if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
+      uLI.sloty[slot].HV := THV.Create(parsed[5]);
+      uLI.sloty[slot].HV.total := (parsed[4] = 'total');
+      uLI.SendLokoStolen(uLI._BROADCAST_CODE, slot);
+     end else if (parsed[4] = 'not') then begin
+      Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autoriovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
+     end;
+
+    end else begin
+     // aktualizace dat o existujici loko
+     if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
+      uLI.sloty[slot].HV.total := (parsed[4] = 'total');
+      uLI.sloty[slot].HV.ukradeno := false;
+      uLI.SendLokoStolen(uLI._BROADCAST_CODE, slot);
+     end else if (parsed[4] = 'stolen') then begin
+      uLI.sloty[slot].HV.ukradeno := true;
+      uLI.SendLokoStolen(uLI._BROADCAST_CODE, slot);
+     end else if (parsed[4] = 'release') then begin
+      uLI.sloty[slot].HV.Free();
+      Self.lokToSlotMap.Remove(addr);
+      uLI.SendLokoStolen(uLI._BROADCAST_CODE, slot);
+     end;
+    end;
+
+
+ end else if (parsed[3] = 'F') then begin
+
+ end else if (parsed[3] = 'SPD') then begin
+
+ end else if (parsed[3] = 'RESP') then begin
+
+ end;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

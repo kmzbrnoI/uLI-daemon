@@ -27,7 +27,6 @@ type
     procedure A_DebugExecute(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
-    procedure Button3Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -111,11 +110,6 @@ begin
   end;
 end;
 
-procedure TF_Main.Button3Click(Sender: TObject);
-begin
- uLI.Open('COM4');
-end;
-
 procedure TF_Main.Button4Click(Sender: TObject);
 begin
  uLI.busEnabled := not uLI.busEnabled;
@@ -148,6 +142,12 @@ begin
 
  uLI.logLevel := tllData;
  uLI.OnLog    := Self.OnuLILog;
+
+ try
+   uLI.Open('COM4');
+ except
+   // TODO
+ end;
 end;
 
 procedure TF_Main.FormShow(Sender: TObject);

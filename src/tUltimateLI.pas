@@ -50,12 +50,13 @@ type
 
       _DEFAULT_DCC = true;
 
-      _BROADCAST_HEADER : ShortString = #$60;
       _CMD_DCC_ON : ShortString = #$61#$01;
       _CMD_DCC_OFF : ShortString = #$61#$00;
 
     public const
       _SLOTS_CNT = 6;
+      _BROADCAST_HEADER : ShortString = #$60;
+      _BROADCAST_CODE   : Byte = $60;
 
     private
      ComPort: TComPort;
@@ -113,7 +114,8 @@ type
       function LokAddrDecode(ah, al: byte): Integer; inline;                      // ctyrmistna adresa lokomotivy ze dvou bajtu do klasickeho cisla
       function LokAddrToBuf(addr: Integer): ShortString;                          // adresa to bufferu
 
-      function FindSlot(mausAddr:Byte):Integer;
+      function FindSlot(mausId:Byte):Integer;
+      function GetConnected():boolean;
 
     public
 
@@ -138,6 +140,8 @@ type
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
       property busEnabled: boolean read uLIStatus.transistor write SetBusActive;
       property DCC : boolean read fDCC write SetDCC;
+      property status : TuLIStatus read uLIStatus;
+      property connected : boolean read GetConnected;
 
   end;
 
@@ -471,6 +475,10 @@ begin
          toSend := AnsiChar(msg.data[0]) + #$E4;
 
          addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+
+         if ((addr >= 1) or (addr <= _SLOTS_CNT)) then
+           Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+
          if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
              (Self.sloty[addr].HV.ukradeno)) then
           begin
@@ -487,7 +495,7 @@ begin
               else tmp2 := 0;
            end;
 
-           tmp := ((Self.sloty[addr].HV.smer AND $1) shl 7) +
+           tmp := (((1-Self.sloty[addr].HV.smer) AND $1) shl 7) +
                   ((tmp2 AND $1e) shr 1) +
                   ((tmp2 AND $01) shl 4);
 
@@ -525,8 +533,8 @@ begin
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
 
-          Self.sloty[addr].HV.smer := 1 - ((Byte(msg.data[4]) shr 7) and $1);
-          tmp := ((msg.data[4] AND $0F) shl 1) OR ((msg.data[4] AND $10) shr 4);
+          Self.sloty[addr].HV.smer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
+          tmp := ((msg.data[5] AND $0F) shl 1) OR ((msg.data[5] AND $10) shr 4);
           if (tmp <= 3) then
            begin
             Self.sloty[addr].HV.rychlost_stupne := 0;
@@ -791,9 +799,11 @@ begin
   begin
    if (new) then
     begin
-     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON + _BROADCAST_HEADER + _CMD_DCC_ON));
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
     end else begin
-     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF + _BROADCAST_HEADER + _CMD_DCC_OFF));
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF));
+     Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF));
     end;
   end;
 end;
@@ -840,11 +850,11 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function TuLI.FindSlot(mausAddr:Byte):Integer;
+function TuLI.FindSlot(mausId:Byte):Integer;
 var i:Integer;
 begin
  for i := 1 to _SLOTS_CNT do
-   if (Self.sloty[i].mausAddr = mausAddr) then
+   if (Self.sloty[i].mausId = mausId) then
      Exit(i);
  Exit(-1);
 end;
@@ -868,6 +878,11 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.GetConnected():boolean;
+begin
+ Result := Self.ComPort.Connected;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
