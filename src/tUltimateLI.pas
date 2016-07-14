@@ -194,11 +194,12 @@ end;
 destructor TuLI.Destroy();
 var i:Integer;
 begin
- for i := 1 to _SLOTS_CNT do FreeAndNil(Self.sloty[i]);
-
  Self.tKASendTimer.Free();
  Self.tKAReceiveTimer.Free();
  Self.ComPort.Free();
+
+ for i := 1 to _SLOTS_CNT do FreeAndNil(Self.sloty[i]);
+
  inherited;
 end;
 
@@ -247,11 +248,16 @@ begin
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
+var i:Integer;
 begin
  Self.tKASendTimer.Enabled    := false;
  Self.tKAReceiveTimer.Enabled := false;
  Self.uLIStatusValid := false;
  Self.uLIStatus := _DEF_ULI_STATUS;
+
+ for i := 1 to _SLOTS_CNT do
+   if (Self.sloty[i].isLoko) then
+     Self.sloty[i].ReleaseLoko();
 
  F_Main.S_ULI.Brush.Color := clYellow;
  F_Main.S_ULI.Hint := 'Odpojuji se od uLI-master...';
@@ -264,6 +270,9 @@ begin
 
  F_Main.S_ULI.Brush.Color := clRed;
  F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
+
+ if ((F_Main.close_app) and (TCPClient.status = TPanelConnectionStatus.closed)) then
+   F_Main.Close();
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -652,7 +661,10 @@ begin
      $02: Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
      $03: Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
      $04: Self.WriteLog(tllCommands, 'GET: OK');
-     $05: Self.WriteLog(tllChanges, 'GET: keep-alive');
+     $05: begin
+       Self.WriteLog(tllChanges, 'GET: keep-alive');
+       Self.KAreceiveTimeout := 0;
+     end;
      $06: Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
      $07: Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
      $08: Self.WriteLog(tllErrors, 'ERR: GET: USB parity error');
@@ -668,6 +680,8 @@ begin
 
     F_Main.S_ULI.Brush.Color := clLime;
     F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
+
+    if (F_Main.close_app) then Self.Close();    
   end;
  end;//case msg.data[1]
 end;//procedure
@@ -815,8 +829,10 @@ begin
  Inc(Self.KAreceiveTimeout);
  if (Self.KAreceiveTimeout > _KA_RECEIVE_TIMEOUT_TICKS) then
   begin
-   // uLI-master neodpovedelo -> co delat?
-   // TODO
+   Self.KAreceiveTimeout := 0;
+   Self.WriteLog(tllErrors, 'uLI neodpovìdìlo na keep-alive!');
+   F_Main.LogMessage('uLI neodpovìdìlo na keep-alive!');
+   Self.Close();
   end;
 end;
 
@@ -839,13 +855,13 @@ end;
 procedure TuLI.SetBusActive(new:boolean);
 var newStatus:TuLIStatus;
 begin
- if (not Self.uLIStatusValid) then
+ if ((new) and (not Self.uLIStatusValid)) then
   begin
    Self.SendStatusRequest();
    raise EuLIStatusInvalid.Create('Program nemá validní data o stavu uLI');
   end;
 
- if (not self.uLIStatus.sense) then
+ if ((new) and (not self.uLIStatus.sense)) then
    raise EPowerTurnedOff.Create('Napájení sbìrnice je vypnuto');
 
  newStatus := Self.uLIStatus;

@@ -120,22 +120,21 @@ end;
 
 procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
- if (uLI.busEnabled) then
+ if (not Self.close_app) then
   begin
-   // TODO: this should be (maybe) done better
-   uLI.busEnabled := false;
-   while (uLI.busEnabled) do
+   if (uLI.busEnabled) then
     begin
-     Application.ProcessMessages();
-     sleep(1);
+     Self.close_app := true;
+     uLI.busEnabled := false;
+     CanClose := false;
     end;
-  end;
 
- if ((TCPClient.status <> TPanelConnectionStatus.closed) and (not Self.close_app)) then
-  begin
-   Self.close_app := true;  // informujeme OnDisconnect, ze ma zavrit okno
-   TCPClient.Disconnect();
-   CanClose := false;       // okno zatim nezavirame, zavre se az pri OnDisconnect
+   if (TCPClient.status <> TPanelConnectionStatus.closed) then
+    begin
+     Self.close_app := true;  // informujeme OnDisconnect, ze ma zavrit okno
+     TCPClient.Disconnect();
+     CanClose := false;       // okno zatim nezavirame, zavre se az pri OnDisconnect
+    end;
   end;
 end;
 

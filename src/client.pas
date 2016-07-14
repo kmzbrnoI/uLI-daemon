@@ -296,7 +296,7 @@ begin
  // zavreni aplikace totiz ve skutecnosti nezavre aplikaci, ale nastavi
  //   F_Main.close_app na true a TCPclient.Disconnect
  // po odpojeni od serveru se tak aplikace zavre
- if (F_Main.close_app) then
+ if ((F_Main.close_app) and (not uLI.connected)) then
    F_Main.Close();
 end;//procedure
 
