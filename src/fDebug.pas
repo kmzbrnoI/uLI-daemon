@@ -57,6 +57,8 @@ end;
 procedure TF_Debug.LV_LogCustomDrawItem(Sender: TCustomListView;
   Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
 begin
+ if (Item.SubItems.Count < 1) then Exit();
+
  if (LeftStr(Item.SubItems.Strings[0], 3) = 'GET') then
   Self.LV_Log.Canvas.Brush.Color := $FFEEEE;
  if (LeftStr(Item.SubItems.Strings[0], 4) = 'SEND') then

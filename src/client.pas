@@ -441,20 +441,23 @@ procedure TTCPClient.ParseLok();
 var addr:Word;
     slot:Byte;
     func:TStrings;
-    left, right, i:Integer;
+    left, right, i, hvIndex:Integer;
+    HV:THV;
 begin
  addr := StrToInt(parsed[2]);
 
  if (parsed[3] = 'AUTH') then begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
    slot := Self.lokToSlotMap[addr];
+   hvIndex := uLI.sloty[slot].GetHVIndex(addr);
 
-   if (not uLI.sloty[slot].isLoko) then
+   if (hvindex = -1) then
     begin
      // prirazeni nove loko do slotu
      if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
-      uLI.sloty[slot].HV := THV.Create(parsed[5]);
-      uLI.sloty[slot].HV.total := (parsed[4] = 'total');
+      HV := THV.Create(parsed[5]);
+      HV.total := (parsed[4] = 'total');
+      uLI.sloty[slot].AddLoko(HV);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'not') then begin
       Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autoriovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
@@ -462,15 +465,16 @@ begin
 
     end else begin
      // aktualizace dat o existujici loko
+
      if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
-      uLI.sloty[slot].HV.total := (parsed[4] = 'total');
-      uLI.sloty[slot].HV.ukradeno := false;
+      uLI.sloty[slot].HVs[hvIndex].total := (parsed[4] = 'total');
+      uLI.sloty[slot].HVs[hvIndex].ukradeno := false;
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'stolen') then begin
-      uLI.sloty[slot].HV.ukradeno := true;
+      uLI.sloty[slot].HVs[hvIndex].ukradeno := true;
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'release') then begin
-      FreeAndNil(uLI.sloty[slot].HV);
+      uLI.sloty[slot].RemoveLoko(hvIndex);
       Self.lokToSlotMap.Remove(addr);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end;
@@ -481,6 +485,8 @@ begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
    slot := Self.lokToSlotMap[addr];
    if (not uLI.sloty[slot].isLoko) then Exit();
+   hvIndex := uLI.sloty[slot].GetHVIndex(addr);
+   if (hvIndex < 0) then Exit();
 
    func := TStringList.Create();
    ExtractStringsEx(['-'], [], parsed[4], func);
@@ -493,17 +499,19 @@ begin
 
    for i := left to right do
     if (i < _MAX_FUNC) then
-       uLI.sloty[slot].HV.funkce[i] := (parsed[5][i-left+1] = '1');
+       uLI.sloty[slot].HVs[hvIndex].funkce[i] := (parsed[5][i-left+1] = '1');
 
    uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
  end else if (parsed[3] = 'SPD') then begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
    slot := Self.lokToSlotMap[addr];
    if (not uLI.sloty[slot].isLoko) then Exit();
+   hvIndex := uLI.sloty[slot].GetHVIndex(addr);
+   if (hvIndex < 0) then Exit();
 
-   uLI.sloty[slot].HV.rychlost_kmph   := StrToInt(parsed[4]);
-   uLI.sloty[slot].HV.rychlost_stupne := StrToInt(parsed[5]);
-   uLI.sloty[slot].HV.smer            := StrToInt(parsed[6]);
+   uLI.sloty[slot].HVs[hvIndex].rychlost_kmph   := StrToInt(parsed[4]);
+   uLI.sloty[slot].HVs[hvIndex].rychlost_stupne := StrToInt(parsed[5]);
+   uLI.sloty[slot].HVs[hvIndex].smer            := StrToInt(parsed[6]);
    uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
  end else if (parsed[3] = 'RESP') then begin
 

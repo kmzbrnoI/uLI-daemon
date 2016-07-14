@@ -89,7 +89,7 @@ implementation
 ////////////////////////////////////////////////////////////////////////////////
 
 LOGIN;server;port;username;password      - pozadavek k pripojeni k serveru a autorizaci regulatoru
-LOKO;addr;token;slot                     - pozadavek k umisteni loko \addr do slotu \slot
+LOKO;slot;[addr;token];[addr;token];...  - pozadavek k umisteni lokomotiv do slotu \slot
 SLOTS?                                   - pozadavek na vraceni seznamu slotu a jejich obsahu
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,11 +97,11 @@ SLOTS?                                   - pozadavek na vraceni seznamu slotu a 
 ////////////////////////////////////////////////////////////////////////////////
 
 LOKO;addr;ok                             - loko uspesne prevzato
-LOKO;addr;err_code;error message         - loko se nepodarilo prevzit
-SLOTS;[addr/-/#];[addr/-/#];...          - sloty, ktere ma daemon k dispozici
+LOKO;err_code;error message              - loko se nepodarilo prevzit
+SLOTS;[F/-/#];[F/-/#];...                  - sloty, ktere ma daemon k dispozici
                                            '-' je prazdny slot
                                            '#' je nefunkcni slot
-                                           \addr je adresa v plnem slotu
+                                           'F' je plny slot
                                            pocet slotu je variabilni
 
 }
@@ -262,6 +262,11 @@ begin
  Self.parsed.Clear();
  ExtractStringsEx([';'], [#13, #10], data, Self.parsed);
 
+ if (Self.parsed.Count > 0) then
+  Self.parsed[0] := UpperCase(Self.parsed[0])
+ else
+  Exit();
+
  try
    Self.Parse(AContext);
  except
@@ -275,6 +280,7 @@ end;//procedure
 procedure TTCPServer.Parse(AContext: TIdContext);
 var slot, i:Integer;
     tmp:string;
+    data: TStrings;
 begin
  if (parsed[0] = 'LOGIN') then begin
    if (not TCPClient.authorised) then
@@ -285,42 +291,54 @@ begin
      TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
     end;
  end else if (parsed[0] = 'LOKO') then begin
-   // LOKO;addr;token;slot
+   // LOKO;slot;[addr;token];[addr;token];...
    if (not TCPClient.authorised) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';1;uLI-daemon neautorizovan vuci hJOPserveru');
+     Self.SendLn(AContext, 'LOKO;1;uLI-daemon neautorizovan vuci hJOPserveru');
      Exit();
     end;
    if (not uLI.connected) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';2;uLI-daemon nepripojen k uLI-master');
+     Self.SendLn(AContext, 'LOKO;2;uLI-daemon nepripojen k uLI-master');
      Exit();
     end;
    if (not uLI.status.sense) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';3;uLI-master neni napajen');
+     Self.SendLn(AContext, 'LOKO;3;uLI-master neni napajen');
      Exit();
     end;
 
-   slot := StrToInt(parsed[3]);
+   slot := StrToInt(parsed[1]);
    if ((slot < 0) or (slot > uLI._SLOTS_CNT)) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';4;Slot mimo povoleny rozsah slotu');
+     Self.SendLn(AContext, 'LOKO;4;Slot mimo povoleny rozsah slotu');
      Exit();
     end;
    if (not uLI.sloty[slot].isMaus) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';5;Rocomaus s timto cislem slotu neni pripojena k uLI');
+     Self.SendLn(AContext, 'LOKO;5;Rocomaus s timto cislem slotu neni pripojena k uLI');
      Exit();
     end;
    if (uLI.sloty[slot].isLoko) then
     begin
-     Self.SendLn(AContext, 'LOKO;'+parsed[1]+';6;Slot '+parsed[3]+' obsazen');
+     Self.SendLn(AContext, 'LOKO;6;Slot '+parsed[1]+' obsazen');
      Exit();
     end;
 
-   TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(parsed[1]), slot);
-   TCPClient.SendLn('-;LOK;'+parsed[1]+';PLEASE;'+parsed[2]);
+   data := TStringList.Create();
+   for i := 2 to parsed.Count-1 do
+    begin
+     data.Clear();
+     ExtractStringsEx([';'], [#13, #10], parsed[i], data);
+
+     try
+       TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), slot);
+       TCPClient.SendLn('-;LOK;'+data[0]+';PLEASE;'+data[1]);
+     except
+
+     end;
+    end;
+   data.Free();
 
  end else if (parsed[0] = 'SLOTS?') then begin
    if ((not TCPClient.authorised) or (not uLI.connected) or (not uLI.status.sense)) then
@@ -333,7 +351,7 @@ begin
       begin
        if (uLI.sloty[i].isMaus) then begin
          if (uLI.sloty[i].isLoko) then
-           tmp := tmp + IntToStr(uLI.sloty[i].HV.Adresa) + ';'
+           tmp := tmp + 'F;'
          else
            tmp := tmp + '-;'
        end else

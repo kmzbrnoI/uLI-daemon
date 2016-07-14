@@ -150,7 +150,7 @@ var
 
 implementation
 
-uses client;
+uses client, tHnaciVozidlo;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -414,9 +414,10 @@ end;
 
 procedure TuLI.ParseDeviceMsg(deviceAddr:Byte; var msg: TBuffer);
 var toSend: ShortString;
-    tmp, tmp2: Byte;
+    tmp, tmp2, tmpSmer: Byte;
     addr: Word;
     i: Integer;
+    funkce: TFunkce;
 begin
  case (msg.data[1]) of
    $21: begin
@@ -452,8 +453,7 @@ begin
          i := Self.FindSlot(msg.data[0] AND $1F);
          if (i > -1) and (Self.sloty[i].isLoko) then
           begin
-           Self.sloty[i].HV.rychlost_stupne := 0;
-           TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[i].HV.Adresa)+';STOP');
+           Self.sloty[i].STOPloko();
            Self.SendLokoStolen(msg.data[0], i);
           end;
 
@@ -480,7 +480,7 @@ begin
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
 
          if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
-             (Self.sloty[addr].HV.ukradeno)) then
+             (Self.sloty[addr].ukradeno)) then
           begin
            // lokomotiva neni rizena ovladacem
            toSend := toSend + #$A + #$80 + #0 + #0;
@@ -489,26 +489,26 @@ begin
            toSend := toSend + AnsiChar(2 + Byte(Self.sloty[addr].mausId <> (msg.data[0] AND $1F)) shl 3);
 
            // rychlost + smer
-           case (Self.sloty[addr].HV.rychlost_stupne) of
+           case (Self.sloty[addr].rychlost_stupne) of
               0: tmp2 := 0;
-              1..28: tmp2 := Self.sloty[addr].HV.rychlost_stupne+3;
+              1..28: tmp2 := Self.sloty[addr].rychlost_stupne+3;
               else tmp2 := 0;
            end;
 
-           tmp := (((1-Self.sloty[addr].HV.smer) AND $1) shl 7) +
+           tmp := (((1-Self.sloty[addr].smer) AND $1) shl 7) +
                   ((tmp2 AND $1e) shr 1) +
                   ((tmp2 AND $01) shl 4);
 
            toSend := toSend + AnsiChar(tmp);
 
            // F0 - F4
-           tmp := (byte(Self.sloty[addr].HV.funkce[0]) shl 4);
-           for i := 1 to 4 do tmp := tmp + (byte(Self.sloty[addr].HV.funkce[i]) shl (i-1));
+           tmp := (byte(Self.sloty[addr].funkce[0]) shl 4);
+           for i := 1 to 4 do tmp := tmp + (byte(Self.sloty[addr].funkce[i]) shl (i-1));
            toSend := toSend + AnsiChar(tmp);
 
            // F5 - F12
            tmp := 0;
-           for i := 5 to 12 do tmp := tmp + (byte(Self.sloty[addr].HV.funkce[i]) shl (i-5));
+           for i := 5 to 12 do tmp := tmp + (byte(Self.sloty[addr].funkce[i]) shl (i-5));
            toSend := toSend + AnsiChar(tmp);
           end;
 
@@ -533,7 +533,7 @@ begin
          end;
 
         if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
-            (not Self.sloty[addr].HV.total)) then
+            (not Self.sloty[addr].total)) then
          begin
           // lokomotiva neni rizena ovladacem
           // -> odeslat "locomotive is being operated by another device"
@@ -541,25 +541,20 @@ begin
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
 
-          Self.sloty[addr].HV.smer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
+          tmpSmer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
           tmp := ((msg.data[5] AND $0F) shl 1) OR ((msg.data[5] AND $10) shr 4);
           if (tmp <= 3) then
            begin
-            Self.sloty[addr].HV.rychlost_stupne := 0;
-
             if (tmp = 2) then
              begin
               // emergency stop -> uvolnit HV ze slotu
               Self.sloty[addr].ReleaseLoko();
              end else begin
               // normal stop
-              TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';SPD-S;'+
-                IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
+              Self.sloty[addr].SetRychlostSmer(0, tmpSmer);
              end;
            end else begin
-            Self.sloty[addr].HV.rychlost_stupne := tmp - 3;
-            TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';SPD-S;'+
-              IntToStr(Self.sloty[addr].HV.rychlost_stupne)+';'+IntToStr(Self.sloty[addr].HV.smer));
+            Self.sloty[addr].SetRychlostSmer(tmp-3, tmpSmer);
            end;
          end;
 
@@ -576,9 +571,9 @@ begin
           Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit funkce
-          Self.sloty[addr].HV.funkce[0] := boolean((msg.data[5] shr 4) and $1);
-          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+1] := boolean((msg.data[5] shr i) and $1);
-          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;0-4;'+Self.sloty[addr].HV.SerializeFunctions(0,4));
+          funkce[0] := boolean((msg.data[5] shr 4) and $1);
+          for i := 0 to 3 do funkce[i+1] := boolean((msg.data[5] shr i) and $1);
+          Self.sloty[addr].SetFunctions(0, 4, funkce);
          end;
       end;
 
@@ -593,8 +588,8 @@ begin
           Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit funkce
-          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+5] := boolean((msg.data[5] shr i) and $1);
-          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;5-8;'+Self.sloty[addr].HV.SerializeFunctions(5,8));
+          for i := 0 to 3 do funkce[i+5] := boolean((msg.data[5] shr i) and $1);
+          Self.sloty[addr].SetFunctions(5, 8, funkce);
          end;
       end;
 
@@ -602,16 +597,15 @@ begin
         Self.WriteLog(tllCommands, 'GET: set F9-F12');
 
         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
-        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
-            (not Self.sloty[addr].HV.total)) then
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
          begin
           // lokomotiva neni rizena ovladacem
           // -> odeslat "locomotive is being operated by another device"
           Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit funkce
-          for i := 0 to 3 do Self.sloty[addr].HV.funkce[i+9] := boolean((msg.data[5] shr i) and $1);
-          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;9-12;'+Self.sloty[addr].HV.SerializeFunctions(9,12));
+          for i := 0 to 3 do funkce[i+9] := boolean((msg.data[5] shr i) and $1);
+          Self.sloty[addr].SetFunctions(9, 12, funkce);
          end;
       end;
 
@@ -626,8 +620,8 @@ begin
           Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end else begin
           // lokomotiva je rizena ovladacem -> nastavit funkce
-          for i := 0 to 7 do Self.sloty[addr].HV.funkce[i+13] := boolean((msg.data[5] shr i) and $1);
-          TCPClient.SendLn('-;LOK;'+IntToStr(Self.sloty[addr].HV.Adresa)+';F;13-20;'+Self.sloty[addr].HV.SerializeFunctions(13,20));
+          for i := 0 to 7 do funkce[i+13] := boolean((msg.data[5] shr i) and $1);
+          Self.sloty[addr].SetFunctions(13, 20, funkce);
          end;
       end;
 
