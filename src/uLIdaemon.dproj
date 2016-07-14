@@ -57,6 +57,9 @@
 			<DCCReference Include="server.pas"/>
 			<DCCReference Include="mausSlot.pas"/>
 			<DCCReference Include="tHnaciVozidlo.pas"/>
+			<DCCReference Include="fSlots.pas">
+				<Form>F_slots</Form>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

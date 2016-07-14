@@ -6,7 +6,8 @@ unit mausSlot;
 
 interface
 
-uses tHnaciVozidlo, SysUtils, Generics.Collections;
+uses tHnaciVozidlo, SysUtils, Generics.Collections, Forms, ExtCtrls, Controls,
+      StdCtrls, Graphics;
 
 type
   TSlot = class
@@ -27,10 +28,22 @@ type
        function GetUkradeno():boolean;
        function GetTotal():boolean;
 
+       procedure CreateGUI();
+
     public
       mausAddr : Integer;  // primarni klic
       mausId : Integer;
       HVs : TList<THV>;
+
+      gui : record
+        panel : TPanel;
+        L_slotId : TLabel;
+        P_status : TPanel;
+        L_Addrs : TLabel;
+        L_Speed : TLabel;
+        CHB_Total : TCheckBox;
+        B_Release : TButton;
+      end;
 
        constructor Create(mausAddr:Integer);
        destructor Destroy(); override;
@@ -44,6 +57,9 @@ type
 
        procedure ResetSlot();
        function GetHVIndex(lokoAddr:Word):Integer;
+
+       procedure Show(form:TForm; activeIndex, activeCount:Integer);
+       procedure HideGUI();
 
        property isLoko : boolean read fIsLoko;
        property isMaus : boolean read fIsMaus;
@@ -59,7 +75,7 @@ type
 
 implementation
 
-uses client;
+uses client, fSlots;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -70,6 +86,7 @@ begin
  Self.mausId   := _MAUS_NULL;
  Self.HVs      := TList<THV>.Create();
  Self.ResetSlot();
+ Self.CreateGUI();
 end;
 
 destructor TSlot.Destroy();
@@ -235,8 +252,94 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+//////////////////////////       G  U  I        ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.CreateGUI();
+begin
+ Self.gui.panel := TPanel.Create(nil);
+ with (Self.gui.panel) do
+  begin
+   Left := 5;
+   Top := 5;
+   Height := 40;
+//   BevelOuter := bvNone;
+  end;
+
+ Self.gui.L_slotId := TLabel.Create(Self.gui.panel);
+ with (Self.gui.L_slotId) do
+  begin
+   Parent := Self.gui.panel;
+   Left := 1;
+   Caption := IntToStr(Self.mausAddr);
+   Font.Size := 24;
+  end;
+
+ Self.gui.P_status := TPanel.Create(Self.gui.panel);
+ with (Self.gui.P_status) do
+  begin
+   Parent := Self.gui.panel;
+   BevelOuter := bvLowered;
+   ParentBackground := false;
+   Color := clSilver;
+   Caption := '?';
+   Left := 30;
+   Width := 40;
+   Top := 10;
+   Height := 20;
+  end;
+
+ Self.gui.L_Addrs := TLabel.Create(Self.gui.panel);
+ with (Self.gui.L_Addrs) do
+  begin
+   Parent := Self.gui.panel;
+   Left := 80;
+   Font.Size := 16;
+   Caption := '1234';
+   Top := 7;
+  end;
+
+ Self.gui.L_Speed := TLabel.Create(Self.gui.panel);
+ with (Self.gui.L_Speed) do
+  begin
+   Parent := Self.gui.panel;
+   Left := 220;
+   Top := 14;
+   Caption := '80 km/h';
+  end;
+
+ Self.gui.CHB_Total := TCheckBox.Create(Self.gui.panel);
+ with (Self.gui.CHB_Total) do
+  begin
+
+  end;
+
+ Self.gui.B_Release := TButton.Create(Self.gui.panel);
+ with (Self.gui.B_Release) do
+  begin
+
+  end;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.Show(form:TForm; activeIndex, activeCount:Integer);
+begin
+ Self.gui.panel.Parent := form;
+ with (Self.gui.panel) do
+  begin
+   Top := ((form.Height*activeIndex) div activeCount) + (((form.Height div activeCount)-Height) div 2);
+   Width := form.Width - 10;
+   Visible := true;
+  end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.HideGUI();
+begin
+ Self.gui.panel.Visible := false;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

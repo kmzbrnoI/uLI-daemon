@@ -16,7 +16,8 @@ uses
   ORList in 'ORList.pas',
   server in 'server.pas',
   mausSlot in 'mausSlot.pas',
-  tHnaciVozidlo in 'tHnaciVozidlo.pas';
+  tHnaciVozidlo in 'tHnaciVozidlo.pas',
+  fSlots in 'fSlots.pas' {F_slots};
 
 {$R *.res}
 

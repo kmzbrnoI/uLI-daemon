@@ -513,8 +513,16 @@ begin
    uLI.sloty[slot].HVs[hvIndex].rychlost_stupne := StrToInt(parsed[5]);
    uLI.sloty[slot].HVs[hvIndex].smer            := StrToInt(parsed[6]);
    uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
- end else if (parsed[3] = 'RESP') then begin
 
+   uLI.sloty[slot].gui.L_Speed.Caption := IntToStr(uLI.sloty[slot].HVs[hvIndex].rychlost_kmph) + ' km/h';
+ end else if (parsed[3] = 'RESP') then begin
+   if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
+   slot := Self.lokToSlotMap[addr];
+   if (not uLI.sloty[slot].isLoko) then Exit();
+
+   if (parsed[4] = 'ok') then
+     if (parsed.Count > 4) then
+       uLI.sloty[slot].gui.L_Speed.Caption := parsed[5] + ' km/h';
  end;
 end;
 

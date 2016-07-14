@@ -14,12 +14,6 @@ type
   TF_Main = class(TForm)
     AL_Main: TActionList;
     A_Debug: TAction;
-    Button1: TButton;
-    ListBox1: TListBox;
-    Button2: TButton;
-    Memo1: TMemo;
-    Button3: TButton;
-    Button4: TButton;
     SB_Main: TStatusBar;
     A_ServerConnect: TAction;
     A_ServerDisconnect: TAction;
@@ -28,9 +22,9 @@ type
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure Button4Click(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SB_MainDblClick(Sender: TObject);
+    procedure FormResize(Sender: TObject);
   private
     { Private declarations }
 
@@ -41,6 +35,7 @@ type
     S_ULI    : TShape;
     close_app : boolean;
 
+    activeMDIform : TForm;
 
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
@@ -53,7 +48,7 @@ var
 
 implementation
 
-uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client;
+uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots;
 
 {$R *.dfm}
 
@@ -64,14 +59,14 @@ end;
 
 procedure TF_Main.Button1Click(Sender: TObject);
 var ports:TStringList;
-    i:Integer;
+//   i:Integer;
 begin
  ports := TStringList.Create();
  uLI.EnumDevices(ports);
 
- Self.ListBox1.Clear();
+{ Self.ListBox1.Clear();
  for i := 0 to ports.Count-1 do
-   Self.ListBox1.Items.Add(ports[i]);
+   Self.ListBox1.Items.Add(ports[i]); }
 
  ports.Free();
 end;
@@ -91,7 +86,7 @@ var
 
 begin
 
-  Memo1.Lines.Clear;
+//  Memo1.Lines.Clear;
   Locator:= CoSWbemLocator.Create;
   Services:=  Locator.ConnectServer('.', 'root\cimv2', '', '', '','', 0, nil);
   ObjSet:= Services.InstancesOf('Win32_PnPEntity', wbemFlagReturnWhenComplete, nil);
@@ -101,31 +96,26 @@ begin
     PropSet := SObject.Properties_;
     SProp  := PropSet.Item('Description', 0);
     sValue := SProp.Get_Value;
-    Memo1.Lines.Add(sValue);
+//    Memo1.Lines.Add(sValue);
 
     SProp  := PropSet.Item('Caption',0);
     sValue := SProp.Get_Value;
-    Memo1.Lines.Add('- '+sValue);
+//    Memo1.Lines.Add('- '+sValue);
 
     SProp  := PropSet.Item('DeviceID',0);
     sValue := SProp.Get_Value;
-    Memo1.Lines.Add('- '+sValue);
+//    Memo1.Lines.Add('- '+sValue);
   end;
-end;
-
-procedure TF_Main.Button4Click(Sender: TObject);
-begin
- uLI.busEnabled := not uLI.busEnabled;
 end;
 
 procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
  if (not Self.close_app) then
   begin
-   if (uLI.busEnabled) then
+   if (uLI.connected) then
     begin
      Self.close_app := true;
-     uLI.busEnabled := false;
+     uLI.Close();
      CanClose := false;
     end;
 
@@ -139,7 +129,10 @@ begin
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
+var fSlots:TF_Slots;
 begin
+ Self.activeMDIform := nil;
+
  Self.CreateShapes();
 
  uLI.logLevel := tllData;
@@ -150,6 +143,16 @@ begin
  except
    // TODO
  end;
+
+ fSlots := TF_slots.Create(Self);
+ fSlots.Parent := Self;
+ fSlots.Show();
+ Self.activeMDIform := fSlots;
+end;
+
+procedure TF_Main.FormResize(Sender: TObject);
+begin
+ if (Assigned(Self.activeMDIform) and (Assigned(Self.activeMDIform.OnResize))) then Self.activeMDIform.OnResize(Self);
 end;
 
 procedure TF_Main.FormShow(Sender: TObject);

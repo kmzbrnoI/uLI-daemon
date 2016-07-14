@@ -112,7 +112,6 @@ type
 
       function LokAddrEncode(addr: Integer): Word; inline;                        // ctyrmistna adresa lokomotivy do dvou bytu
       function LokAddrDecode(ah, al: byte): Integer; inline;                      // ctyrmistna adresa lokomotivy ze dvou bajtu do klasickeho cisla
-      function LokAddrToBuf(addr: Integer): ShortString;                          // adresa to bufferu
 
       function FindSlot(mausId:Byte):Integer;
       function GetConnected():boolean;
@@ -135,6 +134,8 @@ type
       procedure SetStatus(new:TuLIStatus);
 
       function CalcParity(data:Byte):Byte;
+
+      procedure RepaintSlots(form:TForm);
 
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
@@ -301,6 +302,8 @@ begin
  if (not Self.ComPort.Connected) then Exit();
 
  Self.WriteLog(tllCommands, 'CLOSING');
+
+ if (Self.busEnabled) then Self.busEnabled := false; 
 
  try
    Self.ComPort.Close();
@@ -681,7 +684,8 @@ begin
     F_Main.S_ULI.Brush.Color := clLime;
     F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
 
-    if (F_Main.close_app) then Self.Close();    
+    // TODO: odhlasit vsechna loko pri vypadku napajeni uLI-master
+
   end;
  end;//case msg.data[1]
 end;//procedure
@@ -900,13 +904,6 @@ begin
   end;
 end;
 
-function TuLI.LokAddrToBuf(addr: Integer):ShortString;
-var encoded:Word;
-begin
-  encoded := Self.LokAddrEncode(addr);
-  Result := AnsiChar(Hi(encoded)) + AnsiChar(Lo(encoded));
-end;
-
 ////////////////////////////////////////////////////////////////////////////////
 
 function TuLI.LokAddrDecode(ah, al: byte): Integer;
@@ -968,6 +965,28 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.RepaintSlots(form:TForm);
+var i, j, cnt:Integer;
+begin
+ cnt := 0;
+ for i := 1 to _SLOTS_CNT do
+   if (Self.sloty[i].isLoko) then
+     Inc(cnt);
+
+ j := 0;
+ for i := 1 to _SLOTS_CNT do
+  begin
+   if (Self.sloty[i].isLoko) then
+    begin
+     Self.sloty[i].Show(form, j, cnt);
+     Inc(j);
+    end else
+     Self.sloty[i].Show(form, i-1, _SLOTS_CNT);
+//     Self.sloty[i].HideGUI();
+  end;
+
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
