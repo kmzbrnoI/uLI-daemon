@@ -79,11 +79,11 @@ object F_Main: TF_Main
         Width = 100
       end
       item
-        Width = 50
-      end
-      item
-        Width = 50
+        Width = 200
       end>
+    ParentShowHint = False
+    ShowHint = True
+    OnDblClick = SB_MainDblClick
   end
   object AL_Main: TActionList
     Left = 16

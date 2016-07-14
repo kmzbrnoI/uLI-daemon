@@ -30,6 +30,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure SB_MainDblClick(Sender: TObject);
   private
     { Private declarations }
 
@@ -37,11 +38,13 @@ type
 
     S_Server : TShape;
     S_Client : TShape;
+    S_ULI    : TShape;
     close_app : boolean;
 
 
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
+     procedure LogMessage(msg:string);
 
   end;
 
@@ -160,10 +163,16 @@ begin
  if (Assigned(F_Debug)) then F_Debug.Log('uLI: '+msg);
 end;
 
+procedure TF_Main.SB_MainDblClick(Sender: TObject);
+begin
+ Self.SB_Main.Panels[1].Text := '';
+ Self.SB_Main.Hint := '';
+end;
+
 procedure TF_Main.CreateShapes();
 begin
- S_Client := TShape.Create(SB_Main);
- with (S_Client) do
+ S_Server := TShape.Create(SB_Main);
+ with (S_Server) do
   begin
    Parent := SB_Main;
    Left := 1;
@@ -171,12 +180,12 @@ begin
    Height := 16;
    Width := 30;
    ShowHint := true;
-   Hint := 'Odpojeno od serveru';
+   Hint := 'Bridge server: vyppnut';
    Brush.Color := clRed;
   end;
 
- S_Server := TShape.Create(SB_Main);
- with (S_Server) do
+ S_ULI := TShape.Create(SB_Main);
+ with (S_ULI) do
   begin
    Parent := SB_Main;
    Left := 32;
@@ -184,9 +193,28 @@ begin
    Height := 16;
    Width := 30;
    ShowHint := true;
-   Hint := 'Bridge server: vyppnut';
+   Hint := 'Odpojeno od uLI-master';
    Brush.Color := clRed;
   end;
+
+ S_Client := TShape.Create(SB_Main);
+ with (S_Client) do
+  begin
+   Parent := SB_Main;
+   Left := 63;
+   Top  := 2;
+   Height := 16;
+   Width := 30;
+   ShowHint := true;
+   Hint := 'Odpojeno od serveru';
+   Brush.Color := clRed;
+  end;
+end;
+
+procedure TF_Main.LogMessage(msg:string);
+begin
+ Self.SB_Main.Panels[1].Text := msg;
+ Self.SB_Main.Hint := msg;
 end;
 
 end.//unit

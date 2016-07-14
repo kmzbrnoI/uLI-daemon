@@ -400,7 +400,7 @@ begin
    if (Self.fauthorised) then
     begin
      F_Main.S_Client.Hint := 'Pøipojeno k serveru, autorizováno';
-     F_Main.S_Client.Brush.Color := clGreen;
+     F_Main.S_Client.Brush.Color := clLime;
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
      uLI.busEnabled := true;

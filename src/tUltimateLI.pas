@@ -7,7 +7,7 @@ unit tUltimateLI;
 interface
 
 uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows,
-     ExtCtrls, mausSlot;
+     ExtCtrls, mausSlot, Graphics;
 
 type
   TBuffer = record
@@ -150,7 +150,7 @@ var
 
 implementation
 
-uses client, tHnaciVozidlo;
+uses client, tHnaciVozidlo, fMain;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -229,6 +229,9 @@ end;
 procedure TuLI.ComBeforeOpen(Sender:TObject);
 begin
  Self.uLIStatusValid := false;
+
+ F_Main.S_ULI.Brush.Color := clYellow;
+ F_Main.S_ULI.Hint := 'Pøipojuji se k uLI-master...';
 end;
 
 procedure TuLI.ComAfterOpen(Sender:TObject);
@@ -238,6 +241,9 @@ begin
  // reset uLI status
  Self.uLIStatus := _DEF_ULI_STATUS;
  Self.SetStatus(Self.uLIStatus);
+
+ F_Main.S_ULI.Brush.Color := clYellow;
+ F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
@@ -246,12 +252,18 @@ begin
  Self.tKAReceiveTimer.Enabled := false;
  Self.uLIStatusValid := false;
  Self.uLIStatus := _DEF_ULI_STATUS;
+
+ F_Main.S_ULI.Brush.Color := clYellow;
+ F_Main.S_ULI.Hint := 'Odpojuji se od uLI-master...';
 end;
 
 procedure TuLI.ComAfterClose(Sender:TObject);
 begin
  Self.WriteLog(tllCommands, 'CLOSE OK');
  Self.uLIStatusValid := false;
+
+ F_Main.S_ULI.Brush.Color := clRed;
+ F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,7 +282,7 @@ begin
     begin
      Self.ComPort.Close();
      Self.ComAfterClose(Self);
-     // TODO: log exception
+     Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
     end;
  end;
 end;
@@ -284,7 +296,7 @@ begin
  try
    Self.ComPort.Close();
  except
-   // TODO: log exception
+
  end;
 end;
 
@@ -319,11 +331,11 @@ begin
   Fbuf_in.Count := Fbuf_in.Count + Count;
   Fbuf_in_timeout := Now + EncodeTime(0, 0, _BUF_IN_TIMEOUT_MS div 1000, _BUF_IN_TIMEOUT_MS mod 1000);
 
-  // TODO: no not construct data for log when loglevel is low
-
-  s := 'BUF: ';
-  for i := 0 to Fbuf_in.Count-1 do s := s + IntToHex(Fbuf_in.data[i],2)+' ';
-  WriteLog(tllDetail, s);
+  if (Self.logLevel >= tllDetail) then begin
+    s := 'BUF: ';
+    for i := 0 to Fbuf_in.Count-1 do s := s + IntToHex(Fbuf_in.data[i],2)+' ';
+    WriteLog(tllDetail, s);
+   end;
 
   ok := true;
   while (ok) do
@@ -375,9 +387,11 @@ begin
         for i := 0 to Fbuf_in.Count-msg_len-1 do Fbuf_in.data[i] := Fbuf_in.data[i+msg_len];
         Fbuf_in.Count := Fbuf_in.Count - msg_len;
 
-        s := 'BUF: ';
-        for i := 0 to Fbuf_in.Count-1 do s := s + IntToHex(Fbuf_in.data[i],2)+' ';
-        if (Fbuf_in.Count > 0) then WriteLog(tllDetail, s);
+        if (Self.logLevel >= tllDetail) then begin
+          s := 'BUF: ';
+          for i := 0 to Fbuf_in.Count-1 do s := s + IntToHex(Fbuf_in.data[i],2)+' ';
+          if (Fbuf_in.Count > 0) then WriteLog(tllDetail, s);
+         end;
 
        end else ok := false;
      end else ok := false;
@@ -401,12 +415,8 @@ begin
      Self.ParseDeviceMsg((msg.data[0] AND $1F), msg)
    else if (target = 1) then
      Self.ParseuLIMsg(msg)
-   else begin
-     // TODO: unknown message
-   end;
-
  except
-   // TODO
+
  end;
 end;
 
@@ -655,6 +665,9 @@ begin
     // uLI-master status response
     Self.WriteLog(tllCommands, 'GET: master status');
     Self.ParseuLIStatus(msg);
+
+    F_Main.S_ULI.Brush.Color := clLime;
+    F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
   end;
  end;//case msg.data[1]
 end;//procedure
@@ -722,6 +735,7 @@ begin
   except
    on E : Exception do
     begin
+     F_Main.LogMessage('uLI-master PUT ERR : '+E.Message);
      Self.WriteLog(tllErrors, 'PUT ERR: com object error : '+E.Message);
      if (Self.ComPort.Connected) then Self.Close();
     end;

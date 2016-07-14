@@ -29,11 +29,7 @@ begin
 
   // povolena pouze jedna instance uLI-daemon
   Mutex := CreateMutex(nil, True, 'uLI-daemon');
-  if ((Mutex = 0) or (GetLastError = ERROR_ALREADY_EXISTS)) then
-   begin
-    Application.MessageBox('uLI-daemon již spuštìn, povolena pouze jedna instance.', 'Již spuštìn', MB_ICONWARNING OR MB_OK);
-    halt(0);
-   end;
+  if ((Mutex = 0) or (GetLastError = ERROR_ALREADY_EXISTS)) then halt(0);
 
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
