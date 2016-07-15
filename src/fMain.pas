@@ -25,6 +25,7 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SB_MainDblClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
 
@@ -49,7 +50,8 @@ var
 
 implementation
 
-uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots;
+uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots,
+      GlobalConfig;
 
 {$R *.dfm}
 
@@ -109,6 +111,15 @@ begin
   end;
 end;
 
+procedure TF_Main.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+ GlobConfig.data.frmPos.X := Self.Left;
+ GlobConfig.data.frmPos.Y := Self.Top;
+ GlobConfig.data.frmSize.X := Self.Width;
+ GlobConfig.data.frmSize.Y := Self.Height;
+ GlobConfig.SaveFile();
+end;
+
 procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
  if (not Self.close_app) then
@@ -137,6 +148,12 @@ begin
 
  uLI.logLevel := tllData;
  uLI.OnLog    := Self.OnuLILog;
+
+ GlobConfig.LoadFile();
+ Self.Left   := GlobConfig.data.frmPos.X;
+ Self.Top    := GlobConfig.data.frmPos.Y;
+ Self.Width  := GlobConfig.data.frmSize.X;
+ Self.Height := GlobConfig.data.frmSize.Y;
 
  try
    uLI.Open('COM4');

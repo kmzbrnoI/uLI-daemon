@@ -60,6 +60,7 @@
 			<DCCReference Include="fSlots.pas">
 				<Form>F_slots</Form>
 			</DCCReference>
+			<DCCReference Include="GlobalConfig.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
