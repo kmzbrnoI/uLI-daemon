@@ -11,7 +11,7 @@ uses tHnaciVozidlo, SysUtils, Generics.Collections, Forms, ExtCtrls, Controls,
 
 type
   TSlot = class
-    private const
+    public const
       _MAUS_NULL = -1;
 
     private
@@ -29,6 +29,10 @@ type
        function GetTotal():boolean;
 
        procedure CreateGUI();
+       procedure UpdateLokString();
+
+       procedure OnBReleaseClick(Sender:TObject);
+       procedure OnCHBTotalClick(Sender:TObject);
 
     public
       mausAddr : Integer;  // primarni klic
@@ -55,11 +59,12 @@ type
        procedure SetRychlostSmer(stupne:Word; smer:Integer);
        procedure SetFunctions(start, fin:Integer; new:TFunkce);
 
-       procedure ResetSlot();
+       procedure HardResetSlot();
        function GetHVIndex(lokoAddr:Word):Integer;
 
        procedure Show(form:TForm; activeIndex, activeCount:Integer);
        procedure HideGUI();
+       procedure UpdateGUI();
 
        property isLoko : boolean read fIsLoko;
        property isMaus : boolean read fIsMaus;
@@ -85,7 +90,7 @@ begin
  Self.mausAddr := mausAddr;
  Self.mausId   := _MAUS_NULL;
  Self.HVs      := TList<THV>.Create();
- Self.ResetSlot();
+ Self.imagSmer := 0;
  Self.CreateGUI();
 end;
 
@@ -118,6 +123,10 @@ end;
 procedure TSlot.ReleaseLoko();
 var HV:THV;
 begin
+ Self.gui.P_status.Color   := clAqua;
+ Self.gui.P_status.Caption := '...';
+ Self.gui.P_status.Hint    := 'Odeslán požadavek na odhlášení lokomotiv, èekám na odpovìï...';
+
  for HV in Self.HVs do
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';RELEASE');
 end;
@@ -171,8 +180,8 @@ end;
 function TSlot.GetUkradeno():boolean;
 var HV:THV;
 begin
- Result := true;
- for HV in Self.HVs do Result := Result AND HV.ukradeno;
+ Result := false;
+ for HV in Self.HVs do Result := Result OR HV.ukradeno;
 end;
 
 function TSlot.GetTotal():boolean;
@@ -222,9 +231,22 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-procedure TSlot.ResetSlot();
+procedure TSlot.HardResetSlot();
+var HV:THV;
 begin
- Self.imagSmer := 0;
+ Self.mausId := _MAUS_NULL;
+ for HV in Self.HVs do HV.Free();
+ Self.HVs.Clear();
+
+ Self.gui.L_Speed.Caption := '-';
+ Self.gui.CHB_Total.Checked := false;
+ Self.gui.CHB_Total.Enabled := false;
+ Self.gui.B_Release.Enabled := false;
+ Self.gui.L_Addrs.Caption   := '-';
+
+ Self.gui.P_status.Color   := clSilver;
+ Self.gui.P_status.Caption := '-';
+ Self.gui.P_status.Hint    := '';
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -241,14 +263,40 @@ end;
 
 procedure TSlot.AddLoko(HV:THV);
 begin
- if (Self.HVs.Count = 0) then Self.ResetSlot();
+ if (Self.HVs.Count = 0) then Self.imagSmer := 0;
  Self.HVs.Add(HV);
+ Self.UpdateLokString();
+
+ if (Self.HVs.Count = 1) then
+  begin
+   Self.gui.L_Speed.Caption := IntToStr(Self.HVs[0].rychlost_kmph) + ' km/h';
+   Self.gui.CHB_Total.Enabled := true;
+   Self.gui.CHB_Total.Checked := Self.total;
+   Self.gui.B_Release.Enabled := true;
+   Self.gui.P_status.Caption := 'OK';
+   Self.gui.P_status.Hint    := '';
+   Self.gui.P_status.Color   := clLime;
+  end;
 end;
 
 procedure TSlot.RemoveLoko(index:Integer);
 begin
  Self.HVs[index].Free();
  Self.HVs.Delete(index);
+
+ Self.UpdateLokString();
+ if (Self.HVs.Count = 0) then
+  begin
+   Self.gui.L_Speed.Caption := '-';
+   Self.gui.CHB_Total.Checked := false;
+   Self.gui.CHB_Total.Enabled := false;
+   Self.gui.B_Release.Enabled := false;
+   Self.gui.L_Addrs.Caption   := '-';
+
+   Self.gui.P_status.Color   := clSilver;
+   Self.gui.P_status.Caption := '-';
+   Self.gui.P_status.Hint    := '';
+  end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -282,11 +330,12 @@ begin
    BevelOuter := bvLowered;
    ParentBackground := false;
    Color := clSilver;
-   Caption := '?';
+   Caption := '-';
    Left := 30;
    Width := 40;
    Top := 10;
    Height := 20;
+   ShowHint := true;
   end;
 
  Self.gui.L_Addrs := TLabel.Create(Self.gui.panel);
@@ -295,8 +344,9 @@ begin
    Parent := Self.gui.panel;
    Left := 80;
    Font.Size := 16;
-   Caption := '1234';
+   Caption := '-';
    Top := 7;
+   AutoSize := false;
   end;
 
  Self.gui.L_Speed := TLabel.Create(Self.gui.panel);
@@ -305,19 +355,34 @@ begin
    Parent := Self.gui.panel;
    Left := 220;
    Top := 14;
-   Caption := '80 km/h';
+   Caption := '-';
+   AutoSize := false;
+   Width := 40;
   end;
 
  Self.gui.CHB_Total := TCheckBox.Create(Self.gui.panel);
  with (Self.gui.CHB_Total) do
   begin
-
+   Parent := Self.gui.panel;
+   Left := 300;
+   Caption := 'Ruèní øízení';
+   Enabled := false;
+   Top := 11;
+   OnClick := Self.OnCHBTotalClick;
+   Width := 70;
   end;
 
  Self.gui.B_Release := TButton.Create(Self.gui.panel);
  with (Self.gui.B_Release) do
   begin
-
+   Parent := Self.gui.panel;
+   Left := 380;
+   Caption := 'Uvolnit';
+   Enabled := false;
+   Top := 5;
+   Width := 50;
+   Height := 30;
+   OnClick := Self.OnBReleaseClick;
   end;
 end;
 
@@ -332,6 +397,14 @@ begin
    Width := form.Width - 10;
    Visible := true;
   end;
+
+ with (Self.gui) do
+  begin
+   B_Release.Left := panel.ClientWidth - B_Release.Width - 10;
+   CHB_Total.Left := B_Release.Left - CHB_Total.Width - 10;
+   L_Speed.Left   := CHB_Total.Left - L_Speed.Width - 10;
+   L_Addrs.Width  := L_Speed.Left - P_status.Left - P_status.Width - 20;
+  end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -340,6 +413,67 @@ procedure TSlot.HideGUI();
 begin
  Self.gui.panel.Visible := false;
 end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.UpdateLokString();
+var i:Integer;
+begin
+ if (Self.HVs.Count = 0) then
+  Self.gui.L_Addrs.Caption := '-'
+ else begin
+  Self.gui.L_Addrs.Caption := '';
+  for i := 0 to Self.HVs.Count-2 do
+    Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption + Self.HVs[i].Nazev +
+                                ' (' + IntToStr(Self.HVs[i].Adresa) + '),';
+  Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption + Self.HVs[Self.HVs.Count-1].Nazev +
+                              ' (' + IntToStr(Self.HVs[Self.HVs.Count-1].Adresa) + ')';
+ end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.OnBReleaseClick(Sender:TObject);
+begin
+ Self.ReleaseLoko();
+end;
+
+procedure TSlot.OnCHBTotalClick(Sender:TObject);
+var HV:THV;
+begin
+ Self.gui.P_status.Color   := clAqua;
+ Self.gui.P_status.Caption := '...';
+ Self.gui.P_status.Hint    := 'Odeslán požadavek na totální øízení, èekám na odpovìï...';
+
+ for HV in Self.HVs do
+   TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';TOTAL;'+IntToStr(Integer(TCheckBox(Sender).Checked)));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.UpdateGUI();
+begin
+ Self.gui.CHB_Total.Checked := Self.total;
+ if (Self.ukradeno) then begin
+   Self.gui.P_status.Color    := clYellow;
+   Self.gui.P_status.Caption  := 'ukradena';
+   Self.gui.P_status.Hint     := 'Lokomotiva ukradena';
+   Self.gui.L_Speed.Caption   := '? km/h';
+   Self.gui.CHB_Total.Enabled := false;
+ end else if (Self.HVs.Count = 0) then
+   Self.gui.P_status.Color := clSilver
+ else begin
+   Self.gui.P_status.Color := clLime;
+   Self.gui.CHB_Total.Enabled := true;
+   Self.gui.L_Speed.Caption := IntToStr(Self.rychlost_kmph) + ' km/h';
+ end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -287,9 +287,10 @@ begin
  F_Main.A_ServerConnect.Enabled    := true;
  F_Main.A_ServerDisconnect.Enabled := false;
  F_Main.S_Client.Brush.Color       := clRed;
- F_Main.S_Client.Hint              := 'Odpojeno od serveru';
+ F_Main.S_Client.Hint              := 'Odpojeno od hJOP serveru';
 
  // vypnout Rocomaus
+ uLI.HardResetSlots();
  uLI.busEnabled := false;
 
  // flag ukoncovani aplikace
@@ -338,8 +339,7 @@ end;//procedure
 procedure TTCPClient.Timeout();
 begin
  Self.OnTcpClientDisconnected(Self);
- F_Main.SB_Main.Panels[0].Text := 'Spojení se serverem pøerušeno';
- F_Main.SB_Main.Panels[1].Text := '';
+ F_Main.SB_Main.Panels[1].Text := 'Spojení se serverem pøerušeno';
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -367,7 +367,7 @@ begin
        'Upozornìní', MB_OK OR MB_ICONWARNING);
 
    Self.fstatus := TPanelConnectionStatus.opened;
-   F_Main.S_Client.Hint := 'Pøipojeno k serveru, probíhá autorizace...';
+   F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, probíhá autorizace...';
 
    // ziskame seznam oblasti rizeni (to muzeme i bez autorizace)
    //Self.SendLn('-;OR-LIST;');
@@ -399,14 +399,14 @@ begin
    Self.fauthorised := (LowerCase(Self.parsed[4]) = 'ok');
    if (Self.fauthorised) then
     begin
-     F_Main.S_Client.Hint := 'Pøipojeno k serveru, autorizováno';
-     F_Main.S_Client.Brush.Color := clLime;
+     F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
+     F_Main.S_Client.Brush.Color := clGreen;
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
      uLI.busEnabled := true;
 
     end else begin
-     F_Main.S_Client.Hint := 'Pøipojeno k serveru, NEAUTORIZOVÁNO : '+parsed[5];
+     F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
      F_Main.S_Client.Brush.Color := clRed;
      Application.MessageBox(PChar('Nepodaøilo se autoriivat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
      Self.Disconnect();
@@ -460,6 +460,7 @@ begin
       uLI.sloty[slot].AddLoko(HV);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'not') then begin
+      uLI.sloty[slot].UpdateGUI();
       Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autoriovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
      end;
 
@@ -469,60 +470,68 @@ begin
      if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
       uLI.sloty[slot].HVs[hvIndex].total := (parsed[4] = 'total');
       uLI.sloty[slot].HVs[hvIndex].ukradeno := false;
+      uLI.sloty[slot].UpdateGUI();
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'stolen') then begin
       uLI.sloty[slot].HVs[hvIndex].ukradeno := true;
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+      uLI.sloty[slot].UpdateGUI();
      end else if (parsed[4] = 'release') then begin
       uLI.sloty[slot].RemoveLoko(hvIndex);
       Self.lokToSlotMap.Remove(addr);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end;
     end;
+ end else begin
+   // vsechny nasledujici prikazy vyzaduji znalost \slot a \hvIndex
 
-
- end else if (parsed[3] = 'F') then begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
    slot := Self.lokToSlotMap[addr];
    if (not uLI.sloty[slot].isLoko) then Exit();
    hvIndex := uLI.sloty[slot].GetHVIndex(addr);
    if (hvIndex < 0) then Exit();
 
-   func := TStringList.Create();
-   ExtractStringsEx(['-'], [], parsed[4], func);
-   left := StrToInt(func[0]);
-   if (func.Count > 1) then
-    right := StrToInt(func[1])
-   else
-    right := left;
-   func.Free();
+   if (parsed[3] = 'F') then begin
+     func := TStringList.Create();
+     ExtractStringsEx(['-'], [], parsed[4], func);
+     left := StrToInt(func[0]);
+     if (func.Count > 1) then
+      right := StrToInt(func[1])
+     else
+      right := left;
+     func.Free();
 
-   for i := left to right do
-    if (i < _MAX_FUNC) then
-       uLI.sloty[slot].HVs[hvIndex].funkce[i] := (parsed[5][i-left+1] = '1');
+     for i := left to right do
+      if (i < _MAX_FUNC) then
+         uLI.sloty[slot].HVs[hvIndex].funkce[i] := (parsed[5][i-left+1] = '1');
 
-   uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
- end else if (parsed[3] = 'SPD') then begin
-   if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
-   slot := Self.lokToSlotMap[addr];
-   if (not uLI.sloty[slot].isLoko) then Exit();
-   hvIndex := uLI.sloty[slot].GetHVIndex(addr);
-   if (hvIndex < 0) then Exit();
+     uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+   end else if (parsed[3] = 'SPD') then begin
+     uLI.sloty[slot].HVs[hvIndex].rychlost_kmph   := StrToInt(parsed[4]);
+     uLI.sloty[slot].HVs[hvIndex].rychlost_stupne := StrToInt(parsed[5]);
+     uLI.sloty[slot].HVs[hvIndex].smer            := StrToInt(parsed[6]);
+     uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
 
-   uLI.sloty[slot].HVs[hvIndex].rychlost_kmph   := StrToInt(parsed[4]);
-   uLI.sloty[slot].HVs[hvIndex].rychlost_stupne := StrToInt(parsed[5]);
-   uLI.sloty[slot].HVs[hvIndex].smer            := StrToInt(parsed[6]);
-   uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+     uLI.sloty[slot].gui.L_Speed.Caption := IntToStr(uLI.sloty[slot].HVs[hvIndex].rychlost_kmph) + ' km/h';
+   end else if (parsed[3] = 'RESP') then begin
+     if (parsed[4] = 'ok') then
+      begin
+       if (parsed.Count > 4) then uLI.sloty[slot].gui.L_Speed.Caption := parsed[5] + ' km/h';
+       uLI.sloty[slot].gui.P_status.Color := clLime;
+       uLI.sloty[slot].gui.P_status.Caption := 'OK';
+      end else begin
+       uLI.sloty[slot].gui.P_status.Color   := clRed;
+       uLI.sloty[slot].gui.P_status.Caption := 'ERROR';
+       uLI.sloty[slot].gui.P_status.Hint    := parsed[5];
+      end;
+   end else if (parsed[3] = 'TOTAL') then begin
+     uLI.sloty[slot].HVs[hvIndex].total := boolean(StrToInt(parsed[4]));
+     uLI.sloty[slot].gui.CHB_Total.Checked := uLI.sloty[slot].total;
 
-   uLI.sloty[slot].gui.L_Speed.Caption := IntToStr(uLI.sloty[slot].HVs[hvIndex].rychlost_kmph) + ' km/h';
- end else if (parsed[3] = 'RESP') then begin
-   if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
-   slot := Self.lokToSlotMap[addr];
-   if (not uLI.sloty[slot].isLoko) then Exit();
-
-   if (parsed[4] = 'ok') then
-     if (parsed.Count > 4) then
-       uLI.sloty[slot].gui.L_Speed.Caption := parsed[5] + ' km/h';
+     uLI.sloty[slot].gui.P_status.Color   := clLime;
+     uLI.sloty[slot].gui.P_status.Caption := 'OK';
+     uLI.sloty[slot].gui.P_status.Hint    := '';
+   end;
  end;
 end;
 

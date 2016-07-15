@@ -136,6 +136,7 @@ type
       function CalcParity(data:Byte):Byte;
 
       procedure RepaintSlots(form:TForm);
+      procedure HardResetSlots();
 
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
@@ -265,12 +266,17 @@ begin
 end;
 
 procedure TuLI.ComAfterClose(Sender:TObject);
+var i:Integer;
 begin
  Self.WriteLog(tllCommands, 'CLOSE OK');
  Self.uLIStatusValid := false;
 
+ for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
+
  F_Main.S_ULI.Brush.Color := clRed;
  F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
+
+ Self.RepaintSlots(F_Main.F_Slots);
 
  if ((F_Main.close_app) and (TCPClient.status = TPanelConnectionStatus.closed)) then
    F_Main.Close();
@@ -499,7 +505,10 @@ begin
          addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
 
          if (((addr >= 1) or (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
+          begin
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+           Self.RepaintSlots(F_Main.F_Slots);
+          end;
 
          if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
              (Self.sloty[addr].ukradeno)) then
@@ -681,7 +690,7 @@ begin
     Self.WriteLog(tllCommands, 'GET: master status');
     Self.ParseuLIStatus(msg);
 
-    F_Main.S_ULI.Brush.Color := clLime;
+    F_Main.S_ULI.Brush.Color := clGreen;
     F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
 
     // TODO: odhlasit vsechna loko pri vypadku napajeni uLI-master
@@ -858,6 +867,7 @@ end;
 
 procedure TuLI.SetBusActive(new:boolean);
 var newStatus:TuLIStatus;
+    i:Integer;
 begin
  if ((new) and (not Self.uLIStatusValid)) then
   begin
@@ -867,6 +877,12 @@ begin
 
  if ((new) and (not self.uLIStatus.sense)) then
    raise EPowerTurnedOff.Create('Napájení sbìrnice je vypnuto');
+
+ if (not new) then
+  begin
+   for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
+   Self.RepaintSlots(F_Main.F_Slots);
+  end;
 
  newStatus := Self.uLIStatus;
  newStatus.transistor := new;
@@ -971,24 +987,30 @@ var i, j, cnt:Integer;
 begin
  cnt := 0;
  for i := 1 to _SLOTS_CNT do
-   if (Self.sloty[i].isLoko) then
+   if (Self.sloty[i].isMaus) then
      Inc(cnt);
 
  j := 0;
  for i := 1 to _SLOTS_CNT do
   begin
-   if (Self.sloty[i].isLoko) then
+   if ((Self.sloty[i].isMaus) and (Self.busEnabled) and (TCPClient.authorised)) then
     begin
      Self.sloty[i].Show(form, j, cnt);
      Inc(j);
     end else
-     Self.sloty[i].Show(form, i-1, _SLOTS_CNT);
-//     Self.sloty[i].HideGUI();
+     Self.sloty[i].HideGUI();
   end;
 
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.HardResetSlots();
+var i:Integer;
+begin
+ for i := 1 to _SLOTS_CNT do
+   Self.sloty[i].HardResetSlot();
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

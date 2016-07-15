@@ -36,6 +36,7 @@ type
     close_app : boolean;
 
     activeMDIform : TForm;
+    F_Slots : TForm;
 
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
@@ -129,7 +130,6 @@ begin
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
-var fSlots:TF_Slots;
 begin
  Self.activeMDIform := nil;
 
@@ -144,10 +144,10 @@ begin
    // TODO
  end;
 
- fSlots := TF_slots.Create(Self);
- fSlots.Parent := Self;
- fSlots.Show();
- Self.activeMDIform := fSlots;
+ F_Slots := TF_slots.Create(Self);
+ F_Slots.Parent := Self;
+ F_Slots.Show();
+ Self.activeMDIform := F_Slots;
 end;
 
 procedure TF_Main.FormResize(Sender: TObject);
@@ -208,7 +208,7 @@ begin
    Height := 16;
    Width := 30;
    ShowHint := true;
-   Hint := 'Odpojeno od serveru';
+   Hint := 'Odpojeno od hJOP serveru';
    Brush.Color := clRed;
   end;
 end;

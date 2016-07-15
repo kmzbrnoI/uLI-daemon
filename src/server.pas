@@ -175,7 +175,7 @@ begin
    end;
  end;
 
- F_Main.S_Server.Brush.Color := clLime;
+ F_Main.S_Server.Brush.Color := clGreen;
  F_Main.S_Server.Hint := 'Bridge server: spuštìn';
  F_Debug.Log('Bridge server: spuštìn');
 end;
@@ -332,6 +332,10 @@ begin
      ExtractStringsEx([';'], [#13, #10], parsed[i], data);
 
      try
+       uLI.sloty[slot].gui.P_status.Color := clAqua;
+       uLI.sloty[slot].gui.P_status.Caption := '-';
+       uLI.sloty[slot].gui.P_status.Hint := 'Pøišel požadavek na autorizaci LOKO, autorizuji...';
+
        TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), slot);
        TCPClient.SendLn('-;LOK;'+data[0]+';PLEASE;'+data[1]);
      except
