@@ -2,8 +2,9 @@ object F_Main: TF_Main
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSizeToolWin
   Caption = 'uLI-daemon'
-  ClientHeight = 320
+  ClientHeight = 324
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -22,7 +23,7 @@ object F_Main: TF_Main
   TextHeight = 13
   object SB_Main: TStatusBar
     Left = 0
-    Top = 301
+    Top = 305
     Width = 635
     Height = 19
     Panels = <
@@ -35,6 +36,7 @@ object F_Main: TF_Main
     ParentShowHint = False
     ShowHint = True
     OnDblClick = SB_MainDblClick
+    ExplicitTop = 301
   end
   object AL_Main: TActionList
     Left = 16
