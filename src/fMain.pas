@@ -150,10 +150,16 @@ begin
  uLI.OnLog    := Self.OnuLILog;
 
  GlobConfig.LoadFile();
- Self.Left   := GlobConfig.data.frmPos.X;
- Self.Top    := GlobConfig.data.frmPos.Y;
+
  Self.Width  := GlobConfig.data.frmSize.X;
  Self.Height := GlobConfig.data.frmSize.Y;
+
+ if ((GlobConfig.data.frmPos.X >= 0) and (GlobConfig.data.frmPos.Y >= 0) and
+   (GlobConfig.data.frmPos.X+100 < Screen.Width) and (GlobConfig.data.frmPos.Y+100 < Screen.Height)) then
+  begin
+   Self.Left := GlobConfig.data.frmPos.X;
+   Self.Top := GlobConfig.data.frmPos.Y;
+  end;
 
  try
    uLI.Open('COM4');

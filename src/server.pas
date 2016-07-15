@@ -15,14 +15,7 @@ const
   _BRIDGE_DEFAULT_PORT = 5733;                                                  // default port, na ktere bezi bridge server
 
 type
-  TPanelConnectionStatus = (closed, opening, handshake, opened);
-
-  EServerAlreadyStarted = class(Exception);
-
   TTCPServer = class
-   private const
-    _PROTOCOL_VERSION = '1.0';
-
    private
     tcpServer: TIdTCPServer;                                                    // object serveru
     parsed: TStrings;                                                           // naparsovana data, implementovano jako globalni promenna pro zrychleni
@@ -86,8 +79,8 @@ SLOTS?                                   - pozadavek na vraceni seznamu slotu a 
 /////////////////////////// SERVER -> KLIENT ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-LOKO;addr;ok                             - loko uspesne prevzato
-LOKO;err_code;error message              - loko se nepodarilo prevzit
+LOKO;ok                                  - loko uspesne prevzato
+LOKO;err;err_code;error message          - loko se nepodarilo prevzit
 SLOTS;[F/-/#];[F/-/#];...                  - sloty, ktere ma daemon k dispozici
                                            '-' je prazdny slot
                                            '#' je nefunkcni slot
@@ -98,11 +91,6 @@ SLOTS;[F/-/#];[F/-/#];...                  - sloty, ktere ma daemon k dispozici
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
-{
- Navazani komunikace:
-  TODO
-}
 
 uses fMain, fDebug, client, tUltimateLI;
 
@@ -272,34 +260,34 @@ begin
    // LOKO;slot;[addr;token];[addr;token];...
    if (not TCPClient.authorised) then
     begin
-     Self.SendLn(AContext, 'LOKO;1;uLI-daemon neautorizovan vuci hJOPserveru');
+     Self.SendLn(AContext, 'LOKO;err;1;uLI-daemon neautorizovan vuci hJOPserveru');
      Exit();
     end;
    if (not uLI.connected) then
     begin
-     Self.SendLn(AContext, 'LOKO;2;uLI-daemon nepripojen k uLI-master');
+     Self.SendLn(AContext, 'LOKO;err;2;uLI-daemon nepripojen k uLI-master');
      Exit();
     end;
    if (not uLI.status.sense) then
     begin
-     Self.SendLn(AContext, 'LOKO;3;uLI-master neni napajen');
+     Self.SendLn(AContext, 'LOKO;err;3;uLI-master neni napajen');
      Exit();
     end;
 
    slot := StrToInt(parsed[1]);
    if ((slot < 0) or (slot > uLI._SLOTS_CNT)) then
     begin
-     Self.SendLn(AContext, 'LOKO;4;Slot mimo povoleny rozsah slotu');
+     Self.SendLn(AContext, 'LOKO;err;4;Slot mimo povoleny rozsah slotu');
      Exit();
     end;
    if (not uLI.sloty[slot].isMaus) then
     begin
-     Self.SendLn(AContext, 'LOKO;5;Rocomaus s timto cislem slotu neni pripojena k uLI');
+     Self.SendLn(AContext, 'LOKO;err;5;Rocomaus s timto cislem slotu neni pripojena k uLI');
      Exit();
     end;
    if (uLI.sloty[slot].isLoko) then
     begin
-     Self.SendLn(AContext, 'LOKO;6;Slot '+parsed[1]+' obsazen');
+     Self.SendLn(AContext, 'LOKO;err;6;Slot '+parsed[1]+' obsazen');
      Exit();
     end;
 
@@ -313,6 +301,7 @@ begin
        uLI.sloty[slot].gui.P_status.Color := clAqua;
        uLI.sloty[slot].gui.P_status.Caption := '-';
        uLI.sloty[slot].gui.P_status.Hint := 'Pøišel požadavek na autorizaci LOKO, autorizuji...';
+       uLI.sloty[slot].sender := AContext;
 
        TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), slot);
        TCPClient.SendLn('-;LOK;'+data[0]+';PLEASE;'+data[1]);

@@ -461,6 +461,11 @@ begin
       uLI.sloty[slot].AddLoko(HV);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
      end else if (parsed[4] = 'not') then begin
+      if (Assigned(uLI.sloty[slot].sender)) then
+       begin
+        TCPServer.SendLn(uLI.sloty[slot].sender, 'LOKO;err;10;'+parsed[5]);
+        uLI.sloty[slot].sender := nil;
+       end;
       uLI.sloty[slot].UpdateGUI();
       Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autoriovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
      end;

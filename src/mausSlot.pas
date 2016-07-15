@@ -7,7 +7,7 @@ unit mausSlot;
 interface
 
 uses tHnaciVozidlo, SysUtils, Generics.Collections, Forms, ExtCtrls, Controls,
-      StdCtrls, Graphics;
+      StdCtrls, Graphics, IdContext;
 
 type
   TSlot = class
@@ -38,6 +38,7 @@ type
       mausAddr : Integer;  // primarni klic
       mausId : Integer;
       HVs : TList<THV>;
+      sender : TIdContext;
 
       gui : record
         panel : TPanel;
@@ -80,7 +81,7 @@ type
 
 implementation
 
-uses client, fSlots;
+uses client, fSlots, server;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -92,6 +93,7 @@ begin
  Self.HVs      := TList<THV>.Create();
  Self.imagSmer := 0;
  Self.CreateGUI();
+ Self.sender   := nil;
 end;
 
 destructor TSlot.Destroy();
@@ -276,6 +278,12 @@ begin
    Self.gui.P_status.Caption := 'OK';
    Self.gui.P_status.Hint    := '';
    Self.gui.P_status.Color   := clLime;
+  end;
+
+ if (Assigned(Self.sender)) then
+  begin
+   TCPServer.SendLn(Self.sender, 'LOKO;ok');
+   Self.sender := nil;
   end;
 end;
 
