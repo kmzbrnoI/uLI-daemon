@@ -425,7 +425,7 @@ begin
   Self.gui.L_Addrs.Caption := '';
   for i := 0 to Self.HVs.Count-2 do
     Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption + Self.HVs[i].Nazev +
-                                ' (' + IntToStr(Self.HVs[i].Adresa) + '),';
+                                ' (' + IntToStr(Self.HVs[i].Adresa) + '), ';
   Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption + Self.HVs[Self.HVs.Count-1].Nazev +
                               ' (' + IntToStr(Self.HVs[Self.HVs.Count-1].Adresa) + ')';
  end;

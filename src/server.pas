@@ -9,30 +9,21 @@ interface
 
 uses SysUtils, IdTCPServer, IdTCPConnection, IdGlobal,
      Classes, StrUtils, tUltimateLIConst, Graphics, Windows,
-     IdContext, ComCtrls, IdSync;
+     IdContext, ComCtrls, IdSync, Generics.Collections;
 
 const
   _BRIDGE_DEFAULT_PORT = 5733;                                                  // default port, na ktere bezi bridge server
-  _MAX_BRIDGE_CLIENTS = 32;                                                     // maximalni pocet klientu
 
 type
   TPanelConnectionStatus = (closed, opening, handshake, opened);
 
   EServerAlreadyStarted = class(Exception);
 
-  // jeden klient:
-  TBridgeClient = class
-    conn:TIdContext;                                                            // fyzicke spojeni
-    status:TPanelConnectionStatus;                                              // stav spojeni
-    // v conn.data je ulozen objekt typu TTCPORsRef, kde jsou ulozeny oblasti rizeni, ktere dany panel ma autorizovane
-  end;
-
   TTCPServer = class
    private const
     _PROTOCOL_VERSION = '1.0';
 
    private
-    clients:array[0.._MAX_BRIDGE_CLIENTS] of TBridgeClient;                     // databaze klientu
     tcpServer: TIdTCPServer;                                                    // object serveru
     parsed: TStrings;                                                           // naparsovana data, implementovano jako globalni promenna pro zrychleni
     data:string;                                                                // prijata data v plain-text forme
@@ -57,10 +48,9 @@ type
      procedure DisconnectClient(conn:TIdContext);                               // odpojit konkretniho klienta
 
      procedure BroadcastData(data:string);
+     procedure BroadcastSlots();
 
      procedure SendLn(AContext:TIDContext; str:string);
-
-     function GetClient(index:Integer):TBridgeClient;
 
       property openned:boolean read IsOpenned;
       property port:Word read fport write fport;
@@ -119,14 +109,10 @@ uses fMain, fDebug, client, tUltimateLI;
 ////////////////////////////////////////////////////////////////////////////////
 
 constructor TTCPServer.Create();
-var i:Integer;
 begin
  inherited;
 
  Self.fport := _BRIDGE_DEFAULT_PORT;
-
- for i := 0 to _MAX_BRIDGE_CLIENTS-1 do
-  Self.clients[i] := nil;
 
  Self.parsed := TStringList.Create;
 
@@ -188,12 +174,31 @@ end;
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.Stop();
+var iA : Integer;
+    Context: TidContext;
 begin
  if (not Self.tcpServer.Active) then Exit();
 
  F_Main.S_Server.Hint := 'Bridge server: vypínám...';
  F_Debug.Log('Bridge server: vypínám...');
  F_Main.S_Server.Brush.Color := clGray;
+
+ with Self.tcpServer.Contexts.LockList do
+    try
+       for iA := Count - 1 downto 0 do
+       begin
+          Context := Items[iA];
+          if Context = nil then
+             Continue;
+          Context.Connection.IOHandler.WriteBufferClear;
+          Context.Connection.IOHandler.InputBuffer.Clear;
+          Context.Connection.IOHandler.Close;
+          if Context.Connection.Connected then
+             Context.Connection.Disconnect;
+       end;
+    finally
+       Self.tcpServer.Contexts.UnlockList;
+    end;
 
  Self.tcpServer.Active := false;
 
@@ -205,41 +210,14 @@ end;
 // eventy z IdTCPClient
 
 procedure TTCPServer.OnTcpServerConnect(AContext: TIdContext);
-var i:Integer;
 begin
  AContext.Connection.IOHandler.DefStringEncoding := TIdEncoding.enUTF8;
-
- for i := 0 to _MAX_BRIDGE_CLIENTS-1 do
-  if (Self.clients[i] = nil) then
-   break;
-
- // na serveru neni misto -> odpojit klienta
- if (i = _MAX_BRIDGE_CLIENTS) then
-  begin
-   // tady bych mohl napsat chybovou hlasku
-   AContext.Connection.Disconnect();
-   Exit();
-  end;
-
- Self.clients[i]        := TBridgeClient.Create();
- Self.clients[i].conn   := AContext;
- Self.clients[i].status := TPanelConnectionStatus.handshake;
-
  F_Debug.Log('Bridge: client connected');
 end;//procedure
 
 // Udalost vyvolana pri odpojeni klienta
 procedure TTCPServer.OnTcpServerDisconnect(AContext: TIdContext);
-var i:Integer;
 begin
- // vymazeme klienta z databaze klientu
- for i := 0 to _MAX_BRIDGE_CLIENTS-1 do
-  if ((Assigned(Self.clients[i])) and (AContext = Self.clients[i].conn)) then
-   begin
-    FreeAndNil(Self.clients[i]);
-    break;
-   end;
-
  F_Debug.Log('Bridge: client disconnected');
 end;//procedure
 
@@ -388,11 +366,14 @@ end;//procedure
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.BroadcastData(data:string);
-var i:Integer;
+var Context : TIdContext;
 begin
- for i := 0 to _MAX_BRIDGE_CLIENTS-1 do
-  if (Assigned(Self.clients[i])) then
-    Self.SendLn(Self.clients[i].conn, data);
+ try
+   for Context in TList<TIdContext>(Self.tcpServer.Contexts.LockList()) do
+     Self.SendLn(Context, data);
+ finally
+   Self.tcpServer.Contexts.UnlockList();
+ end;
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -404,13 +385,30 @@ end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function TTCPServer.GetClient(index:Integer):TBridgeClient;
+procedure TTCPServer.BroadcastSlots();
+var str:string;
+    i:Integer;
 begin
- if (index < _MAX_BRIDGE_CLIENTS) then
-   Result := Self.clients[index]
- else
-   Result := nil;
-end;//function
+ if (not Self.tcpServer.Active) then Exit(); 
+
+ str := 'SLOTS;';
+
+ if ((TCPClient.authorised) and (uLI.connected) and (uLI.status.sense)) then
+  begin
+   for i := 1 to uLI._SLOTS_CNT do
+    begin
+     if (uLI.sloty[i].isMaus) then begin
+       if (uLI.sloty[i].isLoko) then
+         str := str + 'F;'
+       else
+         str := str + '-;'
+     end else
+       str := str + '#;';
+    end;
+  end;//else no slots
+
+ Self.BroadcastData(str);
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

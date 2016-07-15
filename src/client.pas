@@ -155,7 +155,7 @@ implementation
 
 }
 
-uses fDebug, fMain, ORList, tUltimateLI, tHnaciVozidlo;
+uses fDebug, fMain, ORList, tUltimateLI, tHnaciVozidlo, server;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -291,6 +291,7 @@ begin
 
  // vypnout Rocomaus
  uLI.HardResetSlots();
+ TCPServer.BroadcastSlots();
  uLI.busEnabled := false;
 
  // flag ukoncovani aplikace

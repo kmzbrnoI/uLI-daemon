@@ -152,7 +152,7 @@ var
 
 implementation
 
-uses client, tHnaciVozidlo, fMain;
+uses client, tHnaciVozidlo, fMain, server;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -277,8 +277,9 @@ begin
  F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
 
  Self.RepaintSlots(F_Main.F_Slots);
+ TCPServer.BroadcastSlots();
 
- if ((F_Main.close_app) and (TCPClient.status = TPanelConnectionStatus.closed)) then
+ if ((F_Main.close_app) and (TCPClient.status = client.TPanelConnectionStatus.closed)) then
    F_Main.Close();
 end;
 
@@ -508,6 +509,7 @@ begin
           begin
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
            Self.RepaintSlots(F_Main.F_Slots);
+           TCPServer.BroadcastSlots();
           end;
 
          if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
@@ -764,7 +766,7 @@ begin
     begin
      F_Main.LogMessage('uLI-master PUT ERR : '+E.Message);
      Self.WriteLog(tllErrors, 'PUT ERR: com object error : '+E.Message);
-     if (Self.ComPort.Connected) then Self.Close();
+     if (Self.ComPort.Connected) then Self.ComPort.Close();
     end;
   end;
 
