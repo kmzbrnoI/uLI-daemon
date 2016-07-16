@@ -673,9 +673,15 @@ begin
   $01: begin
     // informative messages
     case (msg.data[2]) of
-     $01: Self.WriteLog(tllErrors, 'ERR: GET: USB incoming data timeout');
+     $01: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: USB incoming data timeout');
+        F_Main.LogMessage('uLI-ERR: GET: USB incoming data timeout');
+     end;
      $02: Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
-     $03: Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
+     $03: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
+        F_Main.LogMessage('uLI-ERR: GET: Unknown command');
+     end;
      $04: Self.WriteLog(tllCommands, 'GET: OK');
      $05: begin
        Self.WriteLog(tllChanges, 'GET: keep-alive');
@@ -683,13 +689,27 @@ begin
 
        if (F_Main.S_ULI.Brush.Color = clGreen) then F_Main.S_ULI.Brush.Color := clLime
        else if (F_Main.S_ULI.Brush.Color = clLime) then F_Main.S_ULI.Brush.Color := clGreen;
-
      end;
-     $06: Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
-     $07: Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
-     $08: Self.WriteLog(tllErrors, 'ERR: GET: USB parity error');
-     $09: Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power source turned off');
-     $0A: Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power transistor closed');
+     $06: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
+        F_Main.LogMessage('uLI-ERR: GET: USB>USART buffer overflow');
+     end;
+     $07: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
+        F_Main.LogMessage('uLI-ERR: GET: USB XOR error');
+     end;
+     $08: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: USB parity error');
+        F_Main.LogMessage('uLI-ERR: GET: USB parity error');
+     end;
+     $09: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power source turned off');
+        F_Main.LogMessage('uLI-ERR: GET: XpressNET power source turned off');
+     end;
+     $0A: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power transistor closed');
+        F_Main.LogMessage('uLI-ERR: GET: XpressNET power transistor closed');
+     end;
     end;
   end;
 
