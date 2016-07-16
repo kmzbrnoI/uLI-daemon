@@ -26,6 +26,7 @@ type
     procedure B_SendClick(Sender: TObject);
     procedure E_SendKeyPress(Sender: TObject; var Key: Char);
     procedure M_DataChange(Sender: TObject);
+    procedure CHB_DataLoggingClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -36,6 +37,8 @@ var
   F_Debug: TF_Debug;
 
 implementation
+
+uses tUltimateLI, tUltimateLIConst;
 
 {$R *.dfm}
 
@@ -79,6 +82,14 @@ end;
 procedure TF_Debug.B_SendClick(Sender: TObject);
 begin
  Self.E_Send.Text := '';
+end;
+
+procedure TF_Debug.CHB_DataLoggingClick(Sender: TObject);
+begin
+ if (Self.CHB_DataLogging.Checked) then
+   uLI.logLevel := tllData
+ else
+   uLI.logLevel := tllNo;
 end;
 
 procedure TF_Debug.E_SendKeyPress(Sender: TObject; var Key: Char);

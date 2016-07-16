@@ -147,7 +147,7 @@ begin
 
  Self.CreateShapes();
 
- uLI.logLevel := tllData;
+ uLI.logLevel := tllNo;
  uLI.OnLog    := Self.OnuLILog;
 
  GlobConfig.LoadFile();

@@ -44,6 +44,7 @@ object F_Debug: TF_Debug
     Height = 17
     Caption = 'Logovat data'
     TabOrder = 0
+    OnClick = CHB_DataLoggingClick
   end
   object LV_Log: TListView
     Left = 8
