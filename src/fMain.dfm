@@ -36,7 +36,6 @@ object F_Main: TF_Main
     ParentShowHint = False
     ShowHint = True
     OnDblClick = SB_MainDblClick
-    ExplicitTop = 301
   end
   object AL_Main: TActionList
     Left = 16

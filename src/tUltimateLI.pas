@@ -680,6 +680,10 @@ begin
      $05: begin
        Self.WriteLog(tllChanges, 'GET: keep-alive');
        Self.KAreceiveTimeout := 0;
+
+       if (F_Main.S_ULI.Brush.Color = clGreen) then F_Main.S_ULI.Brush.Color := clLime
+       else if (F_Main.S_ULI.Brush.Color = clLime) then F_Main.S_ULI.Brush.Color := clGreen;
+
      end;
      $06: Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
      $07: Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
