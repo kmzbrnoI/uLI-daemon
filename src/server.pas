@@ -42,6 +42,7 @@ type
 
      procedure BroadcastData(data:string);
      procedure BroadcastSlots();
+     procedure BroadcastAuth();
 
      procedure SendLn(AContext:TIDContext; str:string);
 
@@ -74,6 +75,7 @@ implementation
 LOGIN;server;port;username;password      - pozadavek k pripojeni k serveru a autorizaci regulatoru
 LOKO;slot;[addr;token];[addr;token];...  - pozadavek k umisteni lokomotiv do slotu \slot
 SLOTS?                                   - pozadavek na vraceni seznamu slotu a jejich obsahu
+AUTH?                                    - pozadavek na vraceni stavu autorizace vuci hJOPserveru
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// SERVER -> KLIENT ///////////////////////////////////
@@ -86,6 +88,7 @@ SLOTS;[F/-/#];[F/-/#];...                  - sloty, ktere ma daemon k dispozici
                                            '#' je nefunkcni slot
                                            'F' je plny slot
                                            pocet slotu je variabilni
+AUTH;[yes/no/cannot]                     - jestli je uLI-daemon autorizovan vuci hJOPserveru
 
 }
 
@@ -330,7 +333,15 @@ begin
       end;
      Self.SendLn(AContext, 'SLOTS;' + tmp);
     end;//else no slots
- end;//"SLOTS?"
+
+ end else if (parsed[0] = 'AUTH?') then begin
+   if (TCPClient.authorised) then
+     Self.SendLn(AContext, 'AUTH;yes')
+   else if ((uLI.connected) and (uLI.statusValid)) then
+     Self.SendLn(AContext, 'AUTH;no')
+   else
+     Self.SendLn(AContext, 'AUTH;cannot');
+ end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -397,6 +408,18 @@ begin
   end;//else no slots
 
  Self.BroadcastData(str);
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TTCPServer.BroadcastAuth();
+begin
+ if (TCPClient.authorised) then
+   Self.BroadcastData('AUTH;yes')
+ else if ((uLI.connected) and (uLI.statusValid)) then
+   Self.BroadcastData('AUTH;no')
+ else
+   Self.BroadcastData('AUTH;cannot');
 end;
 
 ////////////////////////////////////////////////////////////////////////////////

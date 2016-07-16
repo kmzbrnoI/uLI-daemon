@@ -292,6 +292,7 @@ begin
  // vypnout Rocomaus
  uLI.HardResetSlots();
  TCPServer.BroadcastSlots();
+ TCPServer.BroadcastAuth();
  uLI.busEnabled := false;
 
  // flag ukoncovani aplikace
@@ -402,6 +403,8 @@ begin
     begin
      F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
      F_Main.S_Client.Brush.Color := clGreen;
+
+     TCPServer.BroadcastAuth();
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
      uLI.busEnabled := true;

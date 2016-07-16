@@ -144,6 +144,7 @@ type
       property DCC : boolean read fDCC write SetDCC;
       property status : TuLIStatus read uLIStatus;
       property connected : boolean read GetConnected;
+      property statusValid : boolean read uLIStatusValid;
 
   end;
 
@@ -278,6 +279,7 @@ begin
 
  Self.RepaintSlots(F_Main.F_Slots);
  TCPServer.BroadcastSlots();
+ TCPServer.BroadcastAuth();
 
  if ((F_Main.close_app) and (TCPClient.status = client.TPanelConnectionStatus.closed)) then
    F_Main.Close();
@@ -714,6 +716,8 @@ begin
  Self.tKASendTimer.Enabled    := new.aliveReceiving;
  Self.tKAReceiveTimer.Enabled := new.aliveSending;
  Self.KAreceiveTimeout := 0;
+
+ if (not Self.uLIStatusValid) then TCPServer.BroadcastAuth(); 
 
  Self.uLIStatus      := new;
  Self.uLIStatusValid := true;
