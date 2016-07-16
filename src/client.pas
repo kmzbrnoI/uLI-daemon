@@ -42,6 +42,7 @@ type
     control_disconnect:boolean;                                                 // true, pokud se odpojuji od serveru na zaklade pozadavku uzivatele, pri nucenem odpojeni false
     fauthorised:boolean;                                                        // true, pokud strojvedouci autorizovan, pouzivat \authorised
     first_connection:boolean;                                                   // true, pokud aktualni pripojovani je prvni pripojovani (po startu)
+    username:string;
 
      procedure OnTcpClientConnected(Sender: TObject);                           // event TCP klienta pripojeni k serveru
      procedure OnTcpClientDisconnected(Sender: TObject);                        // event TCP klienta odpojeni od serveru
@@ -69,6 +70,7 @@ type
 
       property status:TPanelConnectionStatus read fstatus;                      // aktualni stav pripojeni
       property authorised:boolean read fauthorised;                             // true pokud strojvedouci autorizovan
+      property user:string read username;
 
   end;//TPanelTCPClient
 
@@ -178,6 +180,7 @@ begin
 
  // aktualni status = zavrene spojeni
  Self.fstatus := TPanelConnectionStatus.closed;
+ Self.username := '';
 end;//ctor
 
 destructor TTCPClient.Destroy();
@@ -294,6 +297,9 @@ begin
  TCPServer.BroadcastSlots();
  TCPServer.BroadcastAuth();
  uLI.busEnabled := false;
+
+ Self.username := '';
+ F_Main.UpdateTitle();
 
  // flag ukoncovani aplikace
  // zavreni aplikace totiz ve skutecnosti nezavre aplikaci, ale nastavi
@@ -415,6 +421,11 @@ begin
      Application.MessageBox(PChar('Nepodaøilo se autoriivat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
      Self.Disconnect();
     end;
+
+   Self.username := Self.toAuth.username;
+   Self.toAuth.username := '';
+   Self.toAuth.password := '';
+   F_Main.UpdateTitle();
   end else//if parsed[3] = AUTH
 
  if (parsed[3] = 'PLEASE-RESP') then

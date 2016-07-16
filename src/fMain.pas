@@ -42,6 +42,7 @@ type
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
      procedure LogMessage(msg:string);
+     procedure UpdateTitle();
 
   end;
 
@@ -180,7 +181,7 @@ end;
 
 procedure TF_Main.FormShow(Sender: TObject);
 begin
- Self.Caption := 'uLI-daemon v'+GetVersion(Application.ExeName)+' (build '+GetLastBuildDate()+')';
+ Self.UpdateTitle();
 end;
 
 procedure TF_Main.OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
@@ -240,6 +241,14 @@ procedure TF_Main.LogMessage(msg:string);
 begin
  Self.SB_Main.Panels[1].Text := msg;
  Self.SB_Main.Hint := msg;
+end;
+
+procedure TF_Main.UpdateTitle();
+begin
+ Self.Caption := 'uLI-daemon v'+GetVersion(Application.ExeName)+' (build '+GetLastBuildDate()+')';
+
+ if (TCPClient.user <> '') then
+   Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';
 end;
 
 end.//unit
