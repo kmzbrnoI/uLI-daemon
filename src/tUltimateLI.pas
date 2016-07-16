@@ -115,6 +115,7 @@ type
 
       function FindSlot(mausId:Byte):Integer;
       function GetConnected():boolean;
+      function GetBusActive():boolean;
 
     public
 
@@ -137,10 +138,11 @@ type
 
       procedure RepaintSlots(form:TForm);
       procedure HardResetSlots();
+      procedure ReleaseAllLoko();
 
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
-      property busEnabled: boolean read uLIStatus.transistor write SetBusActive;
+      property busEnabled: boolean read GetBusActive write SetBusActive;
       property DCC : boolean read fDCC write SetDCC;
       property status : TuLIStatus read uLIStatus;
       property connected : boolean read GetConnected;
@@ -720,15 +722,14 @@ begin
 
     F_Main.S_ULI.Brush.Color := clGreen;
     F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
-
-    // TODO: odhlasit vsechna loko pri vypadku napajeni uLI-master
-
   end;
  end;//case msg.data[1]
 end;//procedure
 
 procedure TuLI.ParseuLIStatus(var msg:TBuffer);
 var new:TuLIStatus;
+    blackout, turnon:boolean;
+    i:Integer;
 begin
  new.transistor     := boolean(msg.data[2] and 1);
  new.sense          := boolean((msg.data[2] shr 1) and 1);
@@ -743,8 +744,28 @@ begin
 
  if (not Self.uLIStatusValid) then TCPServer.BroadcastAuth(); 
 
+ blackout := ((Self.status.sense) and (not new.sense));
+ turnon   := ((not Self.status.sense) and (new.sense) and (not new.transistor));
+
  Self.uLIStatus      := new;
  Self.uLIStatusValid := true;
+
+ if (blackout) then
+  begin
+   // vypadek napajeni multiMaus
+   Self.ReleaseAllLoko();
+   for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
+   Self.RepaintSlots(F_Main.F_Slots);
+   F_Main.LogMessage('Výpadek napájení uLI-master!');
+  end else if (turnon) then
+   begin
+    // obnoveni napajeni sbernice -> zapnout ovladace
+    try
+      if (TCPClient.authorised) then Self.busEnabled := true;
+    except
+
+    end;
+   end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -902,11 +923,11 @@ begin
  if ((new) and (not Self.uLIStatusValid)) then
   begin
    Self.SendStatusRequest();
-   raise EuLIStatusInvalid.Create('Program nemá validní data o stavu uLI');
+   raise EuLIStatusInvalid.Create('Program nemá validní data o stavu uLI!');
   end;
 
  if ((new) and (not self.uLIStatus.sense)) then
-   raise EPowerTurnedOff.Create('Napájení sbìrnice je vypnuto');
+   raise EPowerTurnedOff.Create('Zaøízení není napájeno!');
 
  if (not new) then
   begin
@@ -1043,6 +1064,20 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.ReleaseAllLoko();
+var i:Integer;
+begin
+ for i := 1 to _SLOTS_CNT do
+   Self.sloty[i].ReleaseLoko();
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+function TuLI.GetBusActive():boolean;
+begin
+ Result := ((uLIStatusValid) and (uLIStatus.transistor) and (uLIStatus.sense));
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -125,9 +125,12 @@ end;
 procedure TSlot.ReleaseLoko();
 var HV:THV;
 begin
- Self.gui.P_status.Color   := clAqua;
- Self.gui.P_status.Caption := '...';
- Self.gui.P_status.Hint    := 'Odeslán požadavek na odhlášení lokomotiv, èekám na odpovìï...';
+ if (Self.HVs.Count > 0) then
+  begin
+   Self.gui.P_status.Color   := clAqua;
+   Self.gui.P_status.Caption := '...';
+   Self.gui.P_status.Hint    := 'Odeslán požadavek na odhlášení lokomotiv, èekám na odpovìï...';
+  end;
 
  for HV in Self.HVs do
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';RELEASE');

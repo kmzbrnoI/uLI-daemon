@@ -371,7 +371,7 @@ begin
     end;//for i
 
    if (not found) then
-     Application.MessageBox(PChar('Verze protokolu, kterou požívá server ('+Self.parsed[2]+') není podporována'),
+     Application.MessageBox(PChar('Verze protokolu, kterou používá server ('+Self.parsed[2]+') není podporována'),
        'Upozornìní', MB_OK OR MB_ICONWARNING);
 
    Self.fstatus := TPanelConnectionStatus.opened;
@@ -413,7 +413,12 @@ begin
      TCPServer.BroadcastAuth();
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
-     uLI.busEnabled := true;
+     try
+       uLI.busEnabled := true;
+     except
+       on E:Exception do
+         Application.MessageBox(PChar('Nelze zapnout napájení sbìrnice pro ovladaèe:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
+     end;
 
     end else begin
      F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
