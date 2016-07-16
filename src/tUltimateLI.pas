@@ -509,7 +509,7 @@ begin
 
          addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
 
-         if (((addr >= 1) or (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
+         if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
           begin
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
            Self.RepaintSlots(F_Main.F_Slots);
