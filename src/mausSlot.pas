@@ -364,11 +364,11 @@ begin
  with (Self.gui.L_Speed) do
   begin
    Parent := Self.gui.panel;
-   Left := 220;
+   Left := 210;
    Top := 14;
    Caption := '-';
    AutoSize := false;
-   Width := 40;
+   Width := 50;
   end;
 
  Self.gui.CHB_Total := TCheckBox.Create(Self.gui.panel);
