@@ -505,6 +505,7 @@ begin
       uLI.sloty[slot].RemoveLoko(hvIndex);
       Self.lokToSlotMap.Remove(addr);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+      TCPServer.BroadcastSlots();
      end;
     end;
  end else begin
