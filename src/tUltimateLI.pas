@@ -756,6 +756,7 @@ begin
    Self.ReleaseAllLoko();
    for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
    Self.RepaintSlots(F_Main.F_Slots);
+   TCPServer.BroadcastSlots();
    F_Main.LogMessage('Výpadek napájení uLI-master!');
   end else if (turnon) then
    begin
