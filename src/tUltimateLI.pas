@@ -569,8 +569,7 @@ begin
           Self.sloty[addr].mausId := (msg.data[0] AND $1F);
          end;
 
-        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
-            (not Self.sloty[addr].total)) then
+        if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
          begin
           // lokomotiva neni rizena ovladacem
           // -> odeslat "locomotive is being operated by another device"
@@ -588,11 +587,12 @@ begin
               Self.sloty[addr].ReleaseLoko();
              end else begin
               // normal stop
-              Self.sloty[addr].SetRychlostSmer(0, tmpSmer);
+              if (Self.sloty[addr].total) then Self.sloty[addr].SetRychlostSmer(0, tmpSmer);
              end;
            end else begin
-            Self.sloty[addr].SetRychlostSmer(tmp-3, tmpSmer);
+             if (Self.sloty[addr].total) then Self.sloty[addr].SetRychlostSmer(tmp-3, tmpSmer)
            end;
+          if (not Self.sloty[addr].total) then Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end;
 
       end;
