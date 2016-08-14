@@ -155,7 +155,7 @@ var
 
 implementation
 
-uses client, tHnaciVozidlo, fMain, server;
+uses client, tHnaciVozidlo, fMain, server, fSlots, fConnect;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -243,13 +243,12 @@ end;
 procedure TuLI.ComAfterOpen(Sender:TObject);
 begin
  Self.WriteLog(tllCommands, 'OPEN OK');
+ F_Main.S_ULI.Brush.Color := clYellow;
+ F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
 
  // reset uLI status
  Self.uLIStatus := _DEF_ULI_STATUS;
  Self.SetStatus(Self.uLIStatus);
-
- F_Main.S_ULI.Brush.Color := clYellow;
- F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
@@ -279,12 +278,17 @@ begin
  F_Main.S_ULI.Brush.Color := clRed;
  F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
 
- Self.RepaintSlots(F_Main.F_Slots);
+ Self.RepaintSlots(F_Slots);
  TCPServer.BroadcastSlots();
  TCPServer.BroadcastAuth();
 
  if ((F_Main.close_app) and (TCPClient.status = client.TPanelConnectionStatus.closed)) then
+  begin
    F_Main.Close();
+  end else begin
+   F_Main.ShowChild(F_Connect);
+   F_Connect.GB_Connect.Caption := ' Odpojeno od uLI-master ';
+  end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -303,7 +307,7 @@ begin
     begin
      Self.ComPort.Close();
      Self.ComAfterClose(Self);
-     Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+     raise E;
     end;
  end;
 end;
@@ -512,7 +516,7 @@ begin
          if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
           begin
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
-           Self.RepaintSlots(F_Main.F_Slots);
+           Self.RepaintSlots(F_Slots);
            TCPServer.BroadcastSlots();
           end;
 
@@ -755,7 +759,7 @@ begin
    // vypadek napajeni multiMaus
    Self.ReleaseAllLoko();
    for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
-   Self.RepaintSlots(F_Main.F_Slots);
+   Self.RepaintSlots(F_Slots);
    TCPServer.BroadcastSlots();
    F_Main.LogMessage('Vıpadek napájení uLI-master!');
   end else if (turnon) then
@@ -933,7 +937,7 @@ begin
  if (not new) then
   begin
    for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
-   Self.RepaintSlots(F_Main.F_Slots);
+   Self.RepaintSlots(F_Slots);
   end;
 
  newStatus := Self.uLIStatus;

@@ -4,8 +4,8 @@ object F_Main: TF_Main
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSizeToolWin
   Caption = 'uLI-daemon'
-  ClientHeight = 324
-  ClientWidth = 635
+  ClientHeight = 178
+  ClientWidth = 413
   Color = clBtnFace
   Constraints.MinHeight = 100
   Constraints.MinWidth = 200
@@ -25,8 +25,8 @@ object F_Main: TF_Main
   TextHeight = 13
   object SB_Main: TStatusBar
     Left = 0
-    Top = 305
-    Width = 635
+    Top = 159
+    Width = 413
     Height = 19
     Panels = <
       item

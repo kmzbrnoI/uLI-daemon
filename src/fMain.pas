@@ -8,7 +8,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, tUltimateLIConst, ActnList, StdCtrls, ComCtrls, ExtCtrls;
+  Dialogs, tUltimateLIConst, ActnList, StdCtrls, ComCtrls, ExtCtrls,
+  Generics.Collections;
 
 type
   TF_Main = class(TForm)
@@ -19,8 +20,6 @@ type
     A_ServerDisconnect: TAction;
     procedure FormShow(Sender: TObject);
     procedure A_DebugExecute(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SB_MainDblClick(Sender: TObject);
@@ -37,12 +36,13 @@ type
     close_app : boolean;
 
     activeMDIform : TForm;
-    F_Slots : TForm;
 
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
      procedure LogMessage(msg:string);
      procedure UpdateTitle();
+     procedure ShowChild(form:TForm);
+     procedure Open(port:string);
 
   end;
 
@@ -52,64 +52,13 @@ var
 implementation
 
 uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots,
-      GlobalConfig;
+      GlobalConfig, comDiscovery, fConnect;
 
 {$R *.dfm}
 
 procedure TF_Main.A_DebugExecute(Sender: TObject);
 begin
  F_Debug.Show();
-end;
-
-procedure TF_Main.Button1Click(Sender: TObject);
-var ports:TStringList;
-//   i:Integer;
-begin
- ports := TStringList.Create();
- uLI.EnumDevices(ports);
-
-{ Self.ListBox1.Clear();
- for i := 0 to ports.Count-1 do
-   Self.ListBox1.Items.Add(ports[i]); }
-
- ports.Free();
-end;
-
-procedure TF_Main.Button2Click(Sender: TObject);
-var
-  Locator:  ISWbemLocator;
-  Services: ISWbemServices;
-  ObjSet:   ISWbemObjectSet;
-  SObject:  ISWbemObject;
-  PropSet:  ISWbemPropertySet;
-  SProp:    ISWbemProperty;
-  sValue:   String;
-  Enum:     IEnumVariant;
-  Value:    Cardinal;
-  TempObj:  OleVariant;
-
-begin
-
-//  Memo1.Lines.Clear;
-  Locator:= CoSWbemLocator.Create;
-  Services:=  Locator.ConnectServer('.', 'root\cimv2', '', '', '','', 0, nil);
-  ObjSet:= Services.InstancesOf('Win32_PnPEntity', wbemFlagReturnWhenComplete, nil);
-  Enum:= (ObjSet._NewEnum) as IEnumVariant;
-  while (Enum.Next(1, tempObj, Value) = S_OK) do begin
-    SObject:= IUnknown(tempObj) as SWBemObject;
-    PropSet := SObject.Properties_;
-    SProp  := PropSet.Item('Description', 0);
-    sValue := SProp.Get_Value;
-//    Memo1.Lines.Add(sValue);
-
-    SProp  := PropSet.Item('Caption',0);
-    sValue := SProp.Get_Value;
-//    Memo1.Lines.Add('- '+sValue);
-
-    SProp  := PropSet.Item('DeviceID',0);
-    sValue := SProp.Get_Value;
-//    Memo1.Lines.Add('- '+sValue);
-  end;
 end;
 
 procedure TF_Main.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -161,17 +110,6 @@ begin
    Self.Left := GlobConfig.data.frmPos.X;
    Self.Top := GlobConfig.data.frmPos.Y;
   end;
-
- try
-   uLI.Open('COM4');
- except
-   // TODO
- end;
-
- F_Slots := TF_slots.Create(Self);
- F_Slots.Parent := Self;
- F_Slots.Show();
- Self.activeMDIform := F_Slots;
 end;
 
 procedure TF_Main.FormResize(Sender: TObject);
@@ -249,6 +187,28 @@ begin
 
  if (TCPClient.user <> '') then
    Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';
+end;
+
+procedure TF_Main.ShowChild(form:TForm);
+begin
+ if (Assigned(Self.activeMDIform)) then Self.activeMDIform.Close();
+ form.Parent := Self;
+ form.Show();
+ Self.activeMDIform := form;
+end;
+
+procedure TF_Main.Open(port:string);
+begin
+ try
+   uLI.Open(port);
+   Self.ShowChild(F_Slots);
+ except
+   on E:Exception do
+    begin
+     Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+     Self.ShowChild(F_Connect);
+    end;
+ end;
 end;
 
 end.//unit

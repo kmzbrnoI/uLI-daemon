@@ -9,6 +9,10 @@ interface
 uses IniFiles, SysUtils, Types, Generics.Collections, Classes;
 
 type
+  TPortConfigData = record
+    port:string;
+  end;
+
   TGlobConfigData = record
     frmPos:TPoint;
     frmSize:TPoint;
@@ -24,6 +28,7 @@ type
     public
 
       data:TGlobConfigData;
+      port:TPortConfigData;
 
       procedure LoadFile(const filename:string = _DEFAULT_FN);
       procedure SaveFile(const filename:string); overload;
@@ -57,6 +62,8 @@ begin
 
  Self.data.frmSize.X := ini.ReadInteger('F_Main', 'sizeX', 500);
  Self.data.frmSize.Y := ini.ReadInteger('F_Main', 'sizeY', 300);
+
+ Self.port.port := ini.ReadString('COM', 'port', '');
 end;//function
 
 procedure TGlobConfig.SaveFile(const filename:string);
@@ -73,6 +80,8 @@ begin
 
  ini.WriteInteger('F_Main', 'sizeX', Self.data.frmSize.X);
  ini.WriteInteger('F_Main', 'sizeY', Self.data.frmSize.Y);
+
+ ini.WriteString('COM', 'port', Self.port.port);
 
  ini.UpdateFile();
 end;//function
