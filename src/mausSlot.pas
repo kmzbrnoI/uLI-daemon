@@ -39,6 +39,7 @@ type
       mausId : Integer;
       HVs : TList<THV>;
       sender : TIdContext;
+      updating : boolean;
 
       gui : record
         panel : TPanel;
@@ -94,6 +95,7 @@ begin
  Self.imagSmer := 0;
  Self.CreateGUI();
  Self.sender   := nil;
+ Self.updating := false;
 end;
 
 destructor TSlot.Destroy();
@@ -268,46 +270,60 @@ end;
 
 procedure TSlot.AddLoko(HV:THV);
 begin
- if (Self.HVs.Count = 0) then Self.imagSmer := 0;
- Self.HVs.Add(HV);
- Self.UpdateLokString();
+ try
+   Self.updating := true;
 
- if (Self.HVs.Count = 1) then
-  begin
-   Self.gui.L_Speed.Caption := IntToStr(Self.HVs[0].rychlost_kmph) + ' km/h';
-   Self.gui.CHB_Total.Enabled := true;
-   Self.gui.CHB_Total.Checked := Self.total;
-   Self.gui.B_Release.Enabled := true;
-   Self.gui.P_status.Caption := 'OK';
-   Self.gui.P_status.Hint    := '';
-   Self.gui.P_status.Color   := clLime;
-  end;
+   if (Self.HVs.Count = 0) then Self.imagSmer := 0;
+   Self.HVs.Add(HV);
+   Self.UpdateLokString();
 
- if (Assigned(Self.sender)) then
-  begin
-   TCPServer.SendLn(Self.sender, 'LOKO;ok');
-   Self.sender := nil;
-  end;
+   if (Self.HVs.Count >= 1) then
+    begin
+     Self.gui.L_Speed.Caption := IntToStr(Self.HVs[0].rychlost_kmph) + ' km/h';
+     Self.gui.CHB_Total.Enabled := true;
+     Self.gui.CHB_Total.Checked := Self.total;
+     Self.gui.B_Release.Enabled := true;
+     Self.gui.P_status.Caption := 'OK';
+     Self.gui.P_status.Hint    := '';
+     Self.gui.P_status.Color   := clLime;
+    end;
+
+   if (Self.HVs.Count = 1) then TCPServer.BroadcastSlots();
+
+   if (Assigned(Self.sender)) then
+    begin
+     TCPServer.SendLn(Self.sender, 'LOKO;ok');
+     Self.sender := nil;
+    end;
+ finally
+   Self.updating := false;
+ end;
 end;
 
 procedure TSlot.RemoveLoko(index:Integer);
 begin
- Self.HVs[index].Free();
- Self.HVs.Delete(index);
+ try
+   Self.updating := true;
 
- Self.UpdateLokString();
- if (Self.HVs.Count = 0) then
-  begin
-   Self.gui.L_Speed.Caption := '-';
-   Self.gui.CHB_Total.Checked := false;
-   Self.gui.CHB_Total.Enabled := false;
-   Self.gui.B_Release.Enabled := false;
-   Self.gui.L_Addrs.Caption   := '-';
+   Self.HVs[index].Free();
+   Self.HVs.Delete(index);
 
-   Self.gui.P_status.Color   := clSilver;
-   Self.gui.P_status.Caption := '-';
-   Self.gui.P_status.Hint    := '';
-  end;
+   Self.UpdateLokString();
+   if (Self.HVs.Count = 0) then
+    begin
+     Self.gui.L_Speed.Caption := '-';
+     Self.gui.CHB_Total.Checked := false;
+     Self.gui.CHB_Total.Enabled := false;
+     Self.gui.B_Release.Enabled := false;
+     Self.gui.L_Addrs.Caption   := '-';
+
+     Self.gui.P_status.Color   := clSilver;
+     Self.gui.P_status.Caption := '-';
+     Self.gui.P_status.Hint    := '';
+    end;
+ finally
+   Self.updating := false;
+ end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -452,6 +468,8 @@ end;
 procedure TSlot.OnCHBTotalClick(Sender:TObject);
 var HV:THV;
 begin
+ if (Self.updating) then Exit();
+
  Self.gui.P_status.Color   := clAqua;
  Self.gui.P_status.Caption := '...';
  Self.gui.P_status.Hint    := 'Odeslán požadavek na totální øízení, èekám na odpovìï...';
@@ -464,27 +482,26 @@ end;
 
 procedure TSlot.UpdateGUI();
 begin
- Self.gui.CHB_Total.Checked := Self.total;
- if (Self.ukradeno) then begin
-   Self.gui.P_status.Color    := clYellow;
-   Self.gui.P_status.Caption  := 'ukradena';
-   Self.gui.P_status.Hint     := 'Lokomotiva ukradena';
-   Self.gui.L_Speed.Caption   := '? km/h';
-   Self.gui.CHB_Total.Enabled := false;
- end else if (Self.HVs.Count = 0) then
-   Self.gui.P_status.Color := clSilver
- else begin
-   Self.gui.P_status.Color := clLime;
-   Self.gui.CHB_Total.Enabled := true;
-   Self.gui.L_Speed.Caption := IntToStr(Self.rychlost_kmph) + ' km/h';
+ try
+   Self.updating := true;
+   Self.gui.CHB_Total.Checked := Self.total;
+   if (Self.ukradeno) then begin
+     Self.gui.P_status.Color    := clYellow;
+     Self.gui.P_status.Caption  := 'ukradena';
+     Self.gui.P_status.Hint     := 'Lokomotiva ukradena';
+     Self.gui.L_Speed.Caption   := '? km/h';
+     Self.gui.CHB_Total.Enabled := false;
+   end else if (Self.HVs.Count = 0) then
+     Self.gui.P_status.Color := clSilver
+   else begin
+     Self.gui.P_status.Color := clLime;
+     Self.gui.CHB_Total.Enabled := true;
+     Self.gui.L_Speed.Caption := IntToStr(Self.rychlost_kmph) + ' km/h';
+   end;
+ finally
+   Self.updating := false;
  end;
 end;
-
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -486,7 +486,7 @@ begin
         uLI.sloty[slot].sender := nil;
        end;
       uLI.sloty[slot].UpdateGUI();
-      Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autoriovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
+      Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepodaøio autorizovat'+#13#10+parsed[5]), 'Loko neautorizováno', MB_OK OR MB_ICONWARNING)
      end;
 
     end else begin
@@ -551,8 +551,10 @@ begin
        uLI.sloty[slot].gui.P_status.Hint    := parsed[5];
       end;
    end else if (parsed[3] = 'TOTAL') then begin
+     uLI.sloty[slot].updating := true;
      uLI.sloty[slot].HVs[hvIndex].total := boolean(StrToInt(parsed[4]));
      uLI.sloty[slot].gui.CHB_Total.Checked := uLI.sloty[slot].total;
+     uLI.sloty[slot].updating := false;
 
      uLI.sloty[slot].gui.P_status.Color   := clLime;
      uLI.sloty[slot].gui.P_status.Caption := 'OK';
