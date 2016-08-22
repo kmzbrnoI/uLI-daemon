@@ -567,7 +567,7 @@ begin
 
         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
 
-        if (((addr >= 1) or (addr <= _SLOTS_CNT)) and ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
+        if (((addr >= 1) and (addr <= _SLOTS_CNT)) and ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
          begin
           if (Self.sloty[addr].isMaus) then Self.SendLokoStolen(CalcParity(Self.sloty[addr].mausId + $60), addr);
           Self.sloty[addr].mausId := (msg.data[0] AND $1F);
