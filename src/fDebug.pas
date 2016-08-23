@@ -18,6 +18,7 @@ type
     Label1: TLabel;
     L_len: TLabel;
     Label2: TLabel;
+    CHB_KeepAlive: TCheckBox;
     procedure B_ClearLogClick(Sender: TObject);
     procedure LV_LogChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
@@ -27,6 +28,7 @@ type
     procedure E_SendKeyPress(Sender: TObject; var Key: Char);
     procedure M_DataChange(Sender: TObject);
     procedure CHB_DataLoggingClick(Sender: TObject);
+    procedure CHB_KeepAliveClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -90,6 +92,11 @@ begin
    uLI.logLevel := tllData
  else
    uLI.logLevel := tllNo;
+end;
+
+procedure TF_Debug.CHB_KeepAliveClick(Sender: TObject);
+begin
+ uLI.ignoreKeepAliveLogging := not Self.CHB_KeepAlive.Checked;
 end;
 
 procedure TF_Debug.E_SendKeyPress(Sender: TObject; var Key: Char);

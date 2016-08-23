@@ -110,4 +110,13 @@ object F_Debug: TF_Debug
       OnClick = B_SendClick
     end
   end
+  object CHB_KeepAlive: TCheckBox
+    Left = 128
+    Top = 8
+    Width = 121
+    Height = 17
+    Caption = 'Logovat keep-alive'
+    TabOrder = 5
+    OnClick = CHB_KeepAliveClick
+  end
 end

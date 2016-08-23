@@ -53,6 +53,8 @@ type
       _CMD_DCC_ON : ShortString = #$61#$01;
       _CMD_DCC_OFF : ShortString = #$61#$00;
 
+      _KEEP_ALIVE : array[0..3] of Byte = ($A0, $01, $05, $04);
+
     public const
       _SLOTS_CNT = 6;
       _BROADCAST_HEADER : ShortString = #$60;
@@ -120,6 +122,7 @@ type
     public
 
      sloty: array [1.._SLOTS_CNT] of TSlot;
+     ignoreKeepAliveLogging : boolean;
 
       constructor Create();
       destructor Destroy(); override;
@@ -192,6 +195,7 @@ begin
 
  Self.uLIStatusValid := false;
  Self.fDCC := _DEFAULT_DCC;
+ Self.ignoreKeepAliveLogging := true;
 
  for i := 1 to _SLOTS_CNT do Self.sloty[i] := TSlot.Create(i);
 end;
@@ -432,9 +436,12 @@ var target:Byte;
     s:string;
     i:Integer;
 begin
- s := '';
- for i := 0 to msg.Count-1 do s := s + IntToHex(msg.data[i], 2) + ' ';
- Self.WriteLog(tllData, 'GET: '+s);
+ if ((not Self.ignoreKeepAliveLogging) or (msg.Count <> 4) or (not CompareMem(@msg.data, @_KEEP_ALIVE, 4))) then
+  begin
+   s := '';
+   for i := 0 to msg.Count-1 do s := s + IntToHex(msg.data[i], 2) + ' ';
+   Self.WriteLog(tllData, 'GET: '+s);
+  end;
 
  try
    target := (msg.data[0] shr 5) AND 3;
@@ -800,9 +807,12 @@ begin
   data.data[data.Count-1] := x;
 
   //get string for log
-  log := '';
-  for i := 0 to data.Count-1 do log := log + IntToHex(data.data[i],2) + ' ';
-  Self.WriteLog(tllData, 'PUT: '+log);
+  if ((not Self.ignoreKeepAliveLogging) or (data.Count <> 4) or (not CompareMem(@data.data, @_KEEP_ALIVE, 4))) then
+   begin
+    log := '';
+    for i := 0 to data.Count-1 do log := log + IntToHex(data.data[i],2) + ' ';
+    Self.WriteLog(tllData, 'PUT: '+log);
+   end;
 
   try
     InitAsync(asp);
