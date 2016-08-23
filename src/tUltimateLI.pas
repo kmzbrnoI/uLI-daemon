@@ -488,11 +488,8 @@ begin
 
          // zastavit hnaci vozidlo
          i := Self.FindSlot(msg.data[0] AND $1F);
-         if (i > -1) and (Self.sloty[i].isLoko) then
-          begin
+         if ((i > -1) and (Self.sloty[i].isLoko) and ((Self.sloty[i].rychlost_stupne > 0) or (Self.sloty[i].ukradeno))) then
            Self.sloty[i].STOPloko();
-           Self.SendLokoStolen(msg.data[0], i);
-          end;
 
          Self.WriteLog(tllCommands, 'PUT: STOP');
          Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
