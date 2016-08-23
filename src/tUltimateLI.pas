@@ -508,6 +508,15 @@ begin
      end;// case msg.data[2]
    end;//$21
 
+   $42: begin
+     // Accessory Decoder information request
+     Self.WriteLog(tllCommands, 'GET: Accessory Decoder information request');
+     Self.WriteLog(tllCommands, 'PUT: Default Accessory Decoder information');
+     msg.data[3] := $20 + ((msg.data[3] and 1) shl 4);
+     msg.Count := 4;
+     Self.Send(msg);
+   end;//$42
+
    $E3: begin
      case (msg.data[2]) of
        00: begin
