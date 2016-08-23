@@ -493,6 +493,7 @@ begin
      // aktualizace dat o existujici loko
 
      if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then begin
+      uLI.sloty[slot].gui.P_status.Caption := 'OK';
       uLI.sloty[slot].HVs[hvIndex].total := (parsed[4] = 'total');
       uLI.sloty[slot].HVs[hvIndex].ukradeno := false;
       uLI.sloty[slot].UpdateGUI();

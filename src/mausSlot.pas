@@ -32,6 +32,7 @@ type
        procedure UpdateLokString();
 
        procedure OnBReleaseClick(Sender:TObject);
+       procedure ONBTakeClick(Sender:TObject);
        procedure OnCHBTotalClick(Sender:TObject);
 
     public
@@ -49,6 +50,7 @@ type
         L_Speed : TLabel;
         CHB_Total : TCheckBox;
         B_Release : TButton;
+        B_Take : TButton;
       end;
 
        constructor Create(mausAddr:Integer);
@@ -338,7 +340,6 @@ begin
    Left := 5;
    Top := 5;
    Height := 40;
-//   BevelOuter := bvNone;
   end;
 
  Self.gui.L_slotId := TLabel.Create(Self.gui.panel);
@@ -363,6 +364,19 @@ begin
    Top := 10;
    Height := 20;
    ShowHint := true;
+  end;
+
+ Self.gui.B_Take := TButton.Create(Self.gui.panel);
+ with (Self.gui.B_Take) do
+  begin
+   Parent := Self.gui.panel;
+   Left := 80;
+   Caption := 'Pøevzít';
+   Enabled := false;
+   Top := 5;
+   Width := 50;
+   Height := 30;
+   OnClick := Self.ONBTakeClick;
   end;
 
  Self.gui.L_Addrs := TLabel.Create(Self.gui.panel);
@@ -430,7 +444,13 @@ begin
    B_Release.Left := panel.ClientWidth - B_Release.Width - 10;
    CHB_Total.Left := B_Release.Left - CHB_Total.Width - 10;
    L_Speed.Left   := CHB_Total.Left - L_Speed.Width - 10;
-   L_Addrs.Width  := L_Speed.Left - P_status.Left - P_status.Width - 20;
+   B_Take.Visible := Self.ukradeno;
+   B_Take.Enabled := Self.ukradeno;
+   if (Self.ukradeno) then
+     L_Addrs.Left := B_Take.Left + B_Take.Width + 10
+   else
+     L_Addrs.Left := P_status.Left + P_status.Width + 10;
+   L_Addrs.Width := L_Speed.Left - L_Addrs.Left - 10;
   end;
 end;
 
@@ -443,6 +463,7 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Aktualizace textu popisujici lokomotivy.
 procedure TSlot.UpdateLokString();
 var i:Integer;
 begin
@@ -459,12 +480,15 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+// Eventy GUI.
 
+// Uvolnit lokomotivu ze slotu.
 procedure TSlot.OnBReleaseClick(Sender:TObject);
 begin
  Self.ReleaseLoko();
 end;
 
+// Prevzit / odhlasit lokomotivu z rucniho rizeni.
 procedure TSlot.OnCHBTotalClick(Sender:TObject);
 var HV:THV;
 begin
@@ -478,8 +502,23 @@ begin
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';TOTAL;'+IntToStr(Integer(TCheckBox(Sender).Checked)));
 end;
 
+// Prevzit ukradenou lokomotivu.
+procedure TSlot.ONBTakeClick(Sender:TObject);
+var HV:THV;
+begin
+ Self.gui.B_Take.Enabled   := false;
+ Self.gui.P_status.Color   := clAqua;
+ Self.gui.P_status.Caption := '...';
+ Self.gui.P_status.Hint    := 'Odeslán požadavek na totální øízení, èekám na odpovìï...';
+
+ for HV in Self.HVs do
+   if (HV.ukradeno) then
+     TCPClient.LokoPlease(HV.Adresa, '');
+end;
+
 ////////////////////////////////////////////////////////////////////////////////
 
+// Aktualizace GUI dle aktualniho stavu programu.
 procedure TSlot.UpdateGUI();
 begin
  try
@@ -487,7 +526,7 @@ begin
    Self.gui.CHB_Total.Checked := Self.total;
    if (Self.ukradeno) then begin
      Self.gui.P_status.Color    := clYellow;
-     Self.gui.P_status.Caption  := 'ukradena';
+     Self.gui.P_status.Caption  := 'ukrad.';
      Self.gui.P_status.Hint     := 'Lokomotiva ukradena';
      Self.gui.L_Speed.Caption   := '? km/h';
      Self.gui.CHB_Total.Enabled := false;
@@ -498,6 +537,18 @@ begin
      Self.gui.CHB_Total.Enabled := true;
      Self.gui.L_Speed.Caption := IntToStr(Self.rychlost_kmph) + ' km/h';
    end;
+
+   with (Self.gui) do
+    begin
+     B_Take.Visible := Self.ukradeno;
+     B_Take.Enabled := Self.ukradeno;
+     if (Self.ukradeno) then
+       L_Addrs.Left := B_Take.Left + B_Take.Width + 10
+     else
+       L_Addrs.Left := P_status.Left + P_status.Width + 10;
+     L_Addrs.Width := L_Speed.Left - L_Addrs.Left - 10;
+    end;
+
  finally
    Self.updating := false;
  end;
