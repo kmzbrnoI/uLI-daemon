@@ -1,6 +1,40 @@
 // JCL_DEBUG_EXPERT_INSERTJDBG OFF
 program uLIdaemon;
 
+{
+  ------------------------------ uLI-DAEMON ------------------------------------
+
+  Tento program slouzi jako klientska aplikace k JOP technologii vyvinute
+  Janem Horackem, ktera umoznuje rizeni hnacich vozidel pomoci Rocomaus pripojenych
+  k pocitaci pomoci uLI-master.
+
+  Funkce:
+    - rizeni jizdniho stupne, smeru
+    - moznost nouzoveho zastaveni, moznost plynuleho zastaveni
+    - multitrakce
+    - rozliseni mezi totalnim rucnim rizenim (vhodne napr. pro posun) a
+      polorucnim rizenim (vhodne napr. pro rizeni funkci HV v trati)
+    - kontrola odpovedi serveru, resp. cetraly, na prikaz
+    - spoluprace s ovladaci pripojenymi k XpressNETu primo do centraly
+    - kompatibilita s vnejsimi programy akceptovanim argumentu
+}
+
+{
+ Format argumentu:
+    "-u" username
+    "-p" password
+    "-s" server (ip/dns)
+    "-pt" port
+
+ napr.
+   uLI-daemon.exe -u root -p heslo -s server-tt -p 1234
+
+ Port je nepovinny argument, ostatni argumenty jsou povinne. Pokud jsou predany
+ povinne argumenty, uLI-daemon se pokusi pripojit k serveru. Predavani argumentu
+ aplikaci je zamysleno predevsim pro DEBUG, v realnem nasazeni uLI-daemon ziskava
+ autorizaci od hJOPpanelu.
+}
+
 uses
   Forms,
   Windows,
@@ -28,6 +62,9 @@ uses
 var
   Mutex: Cardinal;
   portsList: TList<Integer>;
+  i: Integer;
+  arg, server: string;
+  port: Word;
 
 begin
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
@@ -79,6 +116,43 @@ begin
     end;
    portsList.Free();
   end;
+
+ // Parsovani argumentu
+ server := '';
+ port := _DEFAULT_PORT;
+ i := 1;
+ while (i <= ParamCount) do
+  begin
+   arg := ParamStr(i);
+   if ((arg = '-u') and (i < ParamCount)) then
+    begin
+     // parse username
+     Inc(i);
+     TCPClient.toAuth.username := ParamStr(i);
+    end else
+   if ((arg = '-p') and (i < ParamCount)) then
+    begin
+     // parse password
+     Inc(i);
+     TCPClient.toAuth.password := ParamStr(i);
+    end else
+   if ((arg = '-s') and (i < ParamCount)) then
+    begin
+     Inc(i);
+     server := ParamStr(i);
+    end else
+   if ((arg = '-pt') and (i < ParamCount)) then
+    begin
+     Inc(i);
+     port := StrToIntDef(ParamStr(i), _DEFAULT_PORT);
+   end;
+
+   Inc(i);
+  end;//while
+
+  // pripojeni k serveru z argumentu
+  if ((server <> '') and (TCPClient.toAuth.username <> '') and (TCPClient.toAuth.password <> '')) then
+    TCPClient.Connect(server, port);
 
   Application.Run;
 end.
