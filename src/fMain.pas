@@ -74,18 +74,18 @@ procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
  if (not Self.close_app) then
   begin
-   if (uLI.connected) then
-    begin
-     Self.close_app := true;
-     uLI.Close();
-     CanClose := false;
-    end;
-
    if (TCPClient.status <> TPanelConnectionStatus.closed) then
     begin
      Self.close_app := true;  // informujeme OnDisconnect, ze ma zavrit okno
      TCPClient.Disconnect();
      CanClose := false;       // okno zatim nezavirame, zavre se az pri OnDisconnect
+    end;
+
+   if (uLI.connected) then
+    begin
+     Self.close_app := true;
+     uLI.Close();
+     CanClose := false;
     end;
   end;
 end;

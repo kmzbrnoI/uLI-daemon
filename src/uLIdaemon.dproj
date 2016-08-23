@@ -20,6 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UsePackage>vcl;rtl;vclx;vclactnband;dbrtl;vcldb;vcldbx;bdertl;dsnap;dsnapcon;TeeUI;TeeDB;Tee;adortl;vclib;ibxpress;IndyCore;IndySystem;IndyProtocols;xmlrtl;inet;intrawebdb_100_120;Intraweb_100_120;VclSmp;vclie;websnap;webdsnap;inetdbbde;inetdbxpress;soaprtl;vclribbon;DbxCommonDriver;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;dbexpress;dbxcds;DelphiX190;CPortLibD2009;DCPdelphi2009;JclDeveloperTools;Jcl;JclVcl;JclContainers</DCC_UsePackage>
 			<DCC_ExeOutput>..\output\</DCC_ExeOutput>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_BplOutput>..\outunit\</DCC_BplOutput>
@@ -96,7 +97,7 @@
 						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
 						<VersionInfo Name="MajorVer">1</VersionInfo>
 						<VersionInfo Name="MinorVer">1</VersionInfo>
-						<VersionInfo Name="Release">7</VersionInfo>
+						<VersionInfo Name="Release">8</VersionInfo>
 						<VersionInfo Name="Build">0</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
@@ -109,7 +110,7 @@
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
 						<VersionInfoKeys Name="FileDescription">Propojení hJOPserveru a uLI-master</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">1.1.7.0</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">1.1.8.0</VersionInfoKeys>
 						<VersionInfoKeys Name="InternalName">uLI-daemon</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalCopyright">Jan Horáček</VersionInfoKeys>
 						<VersionInfoKeys Name="LegalTrademarks">Jan Horáček</VersionInfoKeys>
@@ -121,9 +122,6 @@
 					<Excluded_Packages>
 						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
 						<Excluded_Packages Name="$(BDS)\bin\dclofficexp120.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\JclDeveloperTools120.bpl">JEDI Code Library Developer Tools package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\JclContainers120.bpl">JEDI Code Library Containers package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\JclVcl120.bpl">JEDI Code Library VCL package</Excluded_Packages>
 					</Excluded_Packages>
 				</Delphi.Personality>
 			</BorlandProject>

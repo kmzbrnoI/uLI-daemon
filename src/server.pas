@@ -12,15 +12,18 @@ uses SysUtils, IdTCPServer, IdTCPConnection, IdGlobal,
      IdContext, ComCtrls, IdSync, Generics.Collections;
 
 const
-  _BRIDGE_DEFAULT_PORT = 5733;                                                  // default port, na ktere bezi bridge server
+  _BRIDGE_DEFAULT_PORT = 5733;                                                  // default port, na kterem bezi bridge server
 
 type
+  TAuthStatus = (yes, no, cannot);
+
   TTCPServer = class
    private
     tcpServer: TIdTCPServer;                                                    // object serveru
     parsed: TStrings;                                                           // naparsovana data, implementovano jako globalni promenna pro zrychleni
     data:string;                                                                // prijata data v plain-text forme
     fport:Word;                                                                 // aktualni port serveru
+    lastAuth:TAuthStatus;                                                       // posledni stav autorizace
 
      procedure OnTcpServerConnect(AContext: TIdContext);                        // event pripojeni klienta z TIdTCPServer
      procedure OnTcpServerDisconnect(AContext: TIdContext);                     // event odpojeni klienta z TIdTCPServer
@@ -42,7 +45,7 @@ type
 
      procedure BroadcastData(data:string);
      procedure BroadcastSlots();
-     procedure BroadcastAuth();
+     procedure BroadcastAuth(onlyChanges:boolean = false);
 
      procedure SendLn(AContext:TIDContext; str:string);
 
@@ -104,8 +107,8 @@ begin
  inherited;
 
  Self.fport := _BRIDGE_DEFAULT_PORT;
-
  Self.parsed := TStringList.Create;
+ Self.lastAuth := TAuthStatus.cannot;
 
  Self.tcpServer := TIdTCPServer.Create(nil);
  Self.tcpServer.OnConnect    := Self.OnTcpServerConnect;
@@ -412,14 +415,24 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-procedure TTCPServer.BroadcastAuth();
+procedure TTCPServer.BroadcastAuth(onlyChanges:boolean = false);
+var newAuth:TAuthStatus;
 begin
  if (TCPClient.authorised) then
-   Self.BroadcastData('AUTH;yes')
+   newAuth := yes
  else if ((uLI.connected) and (uLI.statusValid)) then
-   Self.BroadcastData('AUTH;no')
+   newAuth := no
  else
-   Self.BroadcastData('AUTH;cannot');
+   newAuth := cannot;
+
+ if ((newAuth = Self.lastAuth) and (onlyChanges)) then Exit();
+ Self.lastAuth := newAuth;
+
+ case (newAuth) of
+  yes    : Self.BroadcastData('AUTH;yes');
+  no     : Self.BroadcastData('AUTH;no');
+  cannot : Self.BroadcastData('AUTH;cannot');
+ end;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -295,18 +295,13 @@ begin
  // vypnout Rocomaus
  uLI.HardResetSlots();
  TCPServer.BroadcastSlots();
- TCPServer.BroadcastAuth();
+ TCPServer.BroadcastAuth(true);
  uLI.busEnabled := false;
 
  Self.username := '';
  F_Main.UpdateTitle();
 
- // flag ukoncovani aplikace
- // zavreni aplikace totiz ve skutecnosti nezavre aplikaci, ale nastavi
- //   F_Main.close_app na true a TCPclient.Disconnect
- // po odpojeni od serveru se tak aplikace zavre
- if ((F_Main.close_app) and (not uLI.connected)) then
-   F_Main.Close();
+ if ((F_Main.close_app) and (not uLI.connected)) then F_Main.Close();
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -410,7 +405,7 @@ begin
      F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
      F_Main.S_Client.Brush.Color := clGreen;
 
-     TCPServer.BroadcastAuth();
+     TCPServer.BroadcastAuth(true);
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
      try

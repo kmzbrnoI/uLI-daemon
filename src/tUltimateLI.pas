@@ -284,11 +284,11 @@ begin
 
  Self.RepaintSlots(F_Slots);
  TCPServer.BroadcastSlots();
- TCPServer.BroadcastAuth();
+ TCPServer.BroadcastAuth(true);
 
- if ((F_Main.close_app) and (TCPClient.status = client.TPanelConnectionStatus.closed)) then
+ if (F_Main.close_app) then
   begin
-   F_Main.Close();
+   if (TCPClient.status = client.TPanelConnectionStatus.closed) then F_Main.Close();
   end else begin
    F_Main.ShowChild(F_Connect);
    F_Connect.GB_Connect.Caption := ' Odpojeno od uLI-master ';
@@ -750,7 +750,7 @@ begin
  Self.tKAReceiveTimer.Enabled := new.aliveSending;
  Self.KAreceiveTimeout := 0;
 
- if (not Self.uLIStatusValid) then TCPServer.BroadcastAuth(); 
+ if (not Self.uLIStatusValid) then TCPServer.BroadcastAuth(true);
 
  blackout := ((Self.status.sense) and (not new.sense));
  turnon   := ((not Self.status.sense) and (new.sense) and (not new.transistor));
