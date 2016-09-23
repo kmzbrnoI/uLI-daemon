@@ -503,7 +503,7 @@ begin
      end else if (parsed[4] = 'release') then begin
       uLI.sloty[slot].RemoveLoko(hvIndex);
       Self.lokToSlotMap.Remove(addr);
-      uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+      if (uLI.sloty[slot].isMaus) then uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
       TCPServer.BroadcastSlots();
      end;
     end;

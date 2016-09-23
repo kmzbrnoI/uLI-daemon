@@ -478,8 +478,9 @@ procedure TuLI.ParseDeviceMsg(deviceAddr:Byte; var msg: TBuffer);
 var toSend: ShortString;
     tmp, tmp2, tmpSmer: Byte;
     addr: Word;
-    i: Integer;
+    i, addrOld: Integer;
     funkce: TFunkce;
+    changed: boolean;
 begin
  case (msg.data[1]) of
    $21: begin
@@ -544,9 +545,26 @@ begin
 
          addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
 
+         changed := false;
+         addrOld := Self.FindSlot(msg.data[0] AND $1F);
+         if ((addrOld > -1) and (addrOld <> addr)) then
+          begin
+           // na mysi doslo ke zmene adresy z addrOld na addr
+           // -> odstranit slot addrOld
+           Self.sloty[addrOld].ReleaseLoko();
+           Self.sloty[addrOld].mausId := TSlot._MAUS_NULL;
+           changed := true;
+          end;
+
          if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus)) then
           begin
+           // obsazujeme slot adresou
            Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+           changed := true;
+          end;
+
+         if (changed) then
+          begin
            Self.RepaintSlots(F_Slots);
            TCPServer.BroadcastSlots();
           end;
