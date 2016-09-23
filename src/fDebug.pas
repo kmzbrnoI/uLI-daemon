@@ -111,6 +111,7 @@ begin
  if (not Assigned(Self.CHB_DataLogging)) then Exit();
  
  if (not Self.CHB_DataLogging.Checked) then Exit();
+ if (Self.LV_Log.Items.Count > 200) then Self.LV_Log.Clear(); 
 
  LI := Self.LV_Log.Items.Insert(0);
  LI.Caption := FormatDateTime('hh:nn:ss,zzz', Now);
