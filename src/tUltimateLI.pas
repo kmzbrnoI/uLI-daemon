@@ -329,7 +329,7 @@ begin
     begin
      Self.ComPort.Close();
      Self.ComAfterClose(Self);
-     raise E;
+     raise;
     end;
  end;
 end;

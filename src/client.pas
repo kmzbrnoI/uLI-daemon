@@ -408,17 +408,20 @@ begin
      TCPServer.BroadcastAuth(true);
 
      // spojedni se serverem uspesne navazano -> zapinam Rocomaus
-     try
-       uLI.busEnabled := true;
-     except
-       on E:Exception do
-         Application.MessageBox(PChar('Nelze zapnout napájení sbìrnice pro ovladaèe:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
-     end;
+     if (uLI.connected) then
+      begin
+       try
+         uLI.busEnabled := true;
+       except
+         on E:Exception do
+           Application.MessageBox(PChar('Nelze zapnout napájení sbìrnice pro ovladaèe:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
+       end;
+      end;
 
     end else begin
      F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
      F_Main.P_Client.Color := clRed;
-     Application.MessageBox(PChar('Nepodaøilo se autoriivat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
+     Application.MessageBox(PChar('Nepodaøilo se autorizovat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
      Self.Disconnect();
     end;
 

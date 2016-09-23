@@ -216,7 +216,7 @@ begin
    on E:Exception do
     begin
      Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
-     Self.ShowChild(F_Connect);
+     // okno pripojeni k COM portu se zobrazi automaticky - v tom ComAfterClose
     end;
  end;
 end;
