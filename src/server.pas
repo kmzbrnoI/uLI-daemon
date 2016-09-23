@@ -136,8 +136,8 @@ procedure TTCPServer.Start(port:Word);
 begin
  if (Self.tcpServer.Active) then Exit();
 
- F_Main.S_Server.Brush.Color := clYellow;
- F_Main.S_Server.Hint := 'Bridge server: spouštìní...';
+ F_Main.P_Server.Color := clYellow;
+ F_Main.P_Server.Hint := 'Bridge server: spouštìní...';
  F_Debug.Log('Bridge server: spouštìní...');
 
  Self.tcpServer.DefaultPort := port;
@@ -148,15 +148,15 @@ begin
  except
   on E:Exception do
    begin
-    F_Main.S_Server.Brush.Color := clRed;
-    F_Main.S_Server.Hint := 'ERR: Panel server: chyba pøi startování serveru : '+E.Message;
+    F_Main.P_Server.Color := clRed;
+    F_Main.P_Server.Hint := 'ERR: Panel server: chyba pøi startování serveru : '+E.Message;
     F_Debug.Log('ERR: Panel server: chyba pøi startování serveru : '+E.Message);
     raise;
    end;
  end;
 
- F_Main.S_Server.Brush.Color := clGreen;
- F_Main.S_Server.Hint := 'Bridge server: spuštìn';
+ F_Main.P_Server.Color := clGreen;
+ F_Main.P_Server.Hint := 'Bridge server: spuštìn';
  F_Debug.Log('Bridge server: spuštìn');
 end;
 
@@ -173,9 +173,9 @@ var iA : Integer;
 begin
  if (not Self.tcpServer.Active) then Exit();
 
- F_Main.S_Server.Hint := 'Bridge server: vypínám...';
+ F_Main.P_Server.Hint := 'Bridge server: vypínám...';
  F_Debug.Log('Bridge server: vypínám...');
- F_Main.S_Server.Brush.Color := clGray;
+ F_Main.P_Server.Color := clGray;
 
  with Self.tcpServer.Contexts.LockList do
     try
@@ -196,8 +196,8 @@ begin
 
  Self.tcpServer.Active := false;
 
- F_Main.S_Server.Brush.Color := clRed;
- F_Main.S_Server.Hint := 'Bridge server: vypnut';
+ F_Main.P_Server.Color := clRed;
+ F_Main.P_Server.Hint := 'Bridge server: vypnut';
 end;
 
 ////////////////////////////////////////////////////////////////////////////////

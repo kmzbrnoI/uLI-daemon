@@ -22,6 +22,11 @@ type
    aliveSending: boolean;
   end;
 
+  TuLIVersion = record
+    sw:string;
+    hw:string;
+  end;
+
   EuLIStatusInvalid = class(Exception);
   EPowerTurnedOff = class(Exception);
 
@@ -32,6 +37,11 @@ type
         transistor: false;
         aliveReceiving: true;
         aliveSending: true;
+      );
+
+      _DEF_ULI_VERSION : TuLIVersion = (
+        sw: '';
+        hw: '';
       );
 
       _CPORT_BAUDRATE    = br19200;
@@ -73,6 +83,7 @@ type
 
      uLIStatusValid: boolean;
      uLIStatus: TuLIStatus;
+     uLIVersion: TuLIVersion;
 
      fLogLevel: TuLILogLevel;
      fDCC : boolean;
@@ -148,6 +159,7 @@ type
       property busEnabled: boolean read GetBusActive write SetBusActive;
       property DCC : boolean read fDCC write SetDCC;
       property status : TuLIStatus read uLIStatus;
+      property version : TuLIVersion read uLIVersion;
       property connected : boolean read GetConnected;
       property statusValid : boolean read uLIStatusValid;
 
@@ -168,6 +180,7 @@ begin
  inherited;
 
  Self.uLIStatus := _DEF_ULI_STATUS;
+ Self.uLIVersion := _DEF_ULI_VERSION;
 
  Self.ComPort := TComPort.Create(nil);
  Self.ComPort.BaudRate                := _CPORT_BAUDRATE;
@@ -240,19 +253,23 @@ procedure TuLI.ComBeforeOpen(Sender:TObject);
 begin
  Self.uLIStatusValid := false;
 
- F_Main.S_ULI.Brush.Color := clYellow;
- F_Main.S_ULI.Hint := 'Pøipojuji se k uLI-master...';
+ F_Main.P_ULI.Color := clYellow;
+ F_Main.P_ULI.Hint := 'Pøipojuji se k uLI-master...';
 end;
 
 procedure TuLI.ComAfterOpen(Sender:TObject);
 begin
  Self.WriteLog(tllCommands, 'OPEN OK');
- F_Main.S_ULI.Brush.Color := clYellow;
- F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
+ F_Main.P_ULI.Color := clYellow;
+ F_Main.P_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
 
  // reset uLI status
  Self.uLIStatus := _DEF_ULI_STATUS;
  Self.SetStatus(Self.uLIStatus);
+
+ // uLI version request
+ Self.WriteLog(tllCommands, 'SEND: version request');
+ Self.Send(CreateBuf(ShortString(#$A0+#$11+#$80)));
 end;
 
 procedure TuLI.ComBeforeClose(Sender:TObject);
@@ -262,13 +279,14 @@ begin
  Self.tKAReceiveTimer.Enabled := false;
  Self.uLIStatusValid := false;
  Self.uLIStatus := _DEF_ULI_STATUS;
+ Self.uLIVersion := _DEF_ULI_VERSION;
 
  for i := 1 to _SLOTS_CNT do
    if (Self.sloty[i].isLoko) then
      Self.sloty[i].ReleaseLoko();
 
- F_Main.S_ULI.Brush.Color := clYellow;
- F_Main.S_ULI.Hint := 'Odpojuji se od uLI-master...';
+ F_Main.P_ULI.Color := clYellow;
+ F_Main.P_ULI.Hint := 'Odpojuji se od uLI-master...';
 end;
 
 procedure TuLI.ComAfterClose(Sender:TObject);
@@ -279,8 +297,8 @@ begin
 
  for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
 
- F_Main.S_ULI.Brush.Color := clRed;
- F_Main.S_ULI.Hint := 'Odpojeno od uLI-master';
+ F_Main.P_ULI.Color := clRed;
+ F_Main.P_ULI.Hint := 'Odpojeno od uLI-master';
 
  Self.RepaintSlots(F_Slots);
  TCPServer.BroadcastSlots();
@@ -706,8 +724,8 @@ begin
        Self.WriteLog(tllChanges, 'GET: keep-alive');
        Self.KAreceiveTimeout := 0;
 
-       if (F_Main.S_ULI.Brush.Color = clGreen) then F_Main.S_ULI.Brush.Color := clLime
-       else if (F_Main.S_ULI.Brush.Color = clLime) then F_Main.S_ULI.Brush.Color := clGreen;
+       if (F_Main.P_ULI.Color = clGreen) then F_Main.P_ULI.Color := clLime
+       else if (F_Main.P_ULI.Color = clLime) then F_Main.P_ULI.Color := clGreen;
      end;
      $06: begin
         Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
@@ -737,10 +755,20 @@ begin
     Self.WriteLog(tllCommands, 'GET: master status');
     Self.ParseuLIStatus(msg);
 
-    F_Main.S_ULI.Brush.Color := clGreen;
-    F_Main.S_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
+    F_Main.P_ULI.Color := clGreen;
+    F_Main.P_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
   end;
- end;//case msg.data[1]
+
+  $13: begin
+    if (msg.data[2] = $80) then
+     begin
+      Self.uLIVersion.hw := IntToStr((msg.data[3] shr 4) AND $F) + '.' + IntToStr(msg.data[3] AND $F);
+      Self.uLIVersion.sw := IntToStr((msg.data[4] shr 4) AND $F) + '.' + IntToStr(msg.data[4] AND $F);
+      Self.WriteLog(tllCommands, 'GET: uLI version hw:'+Self.uLIVersion.hw+', sw:'+Self.uLIVersion.sw);
+     end;
+
+  end;//case msg.data[1]
+ end;//case
 end;//procedure
 
 procedure TuLI.ParseuLIStatus(var msg:TBuffer);

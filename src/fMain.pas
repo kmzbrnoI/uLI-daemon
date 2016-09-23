@@ -26,13 +26,13 @@ type
     procedure FormResize(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    { Private declarations }
+    procedure PuLIOnDblClick(Sender:TObject);
 
   public
 
-    S_Server : TShape;
-    S_Client : TShape;
-    S_ULI    : TShape;
+    P_Server : TPanel;
+    P_Client : TPanel;
+    P_ULI    : TPanel;
     close_app : boolean;
 
     activeMDIform : TForm;
@@ -135,43 +135,53 @@ end;
 
 procedure TF_Main.CreateShapes();
 begin
- S_Server := TShape.Create(SB_Main);
- with (S_Server) do
+ P_Server := TPanel.Create(SB_Main);
+ with (P_Server) do
   begin
    Parent := SB_Main;
+   ParentBackground := false;
    Left := 1;
    Top  := 2;
    Height := 16;
    Width := 30;
    ShowHint := true;
-   Hint := 'Bridge server: vyppnut';
-   Brush.Color := clRed;
+   BevelOuter := bvNone;
+   Hint := 'Bridge server: vypnut';
+   Color := clRed;
+   Caption := '';
   end;
 
- S_ULI := TShape.Create(SB_Main);
- with (S_ULI) do
+ P_ULI := TPanel.Create(SB_Main);
+ with (P_ULI) do
   begin
    Parent := SB_Main;
+   ParentBackground := false;
    Left := 32;
    Top  := 2;
    Height := 16;
    Width := 30;
    ShowHint := true;
+   BevelOuter := bvNone;
    Hint := 'Odpojeno od uLI-master';
-   Brush.Color := clRed;
+   Color := clRed;
+   Caption := '';
+   OnDblClick := Self.PuLIOnDblClick;
   end;
 
- S_Client := TShape.Create(SB_Main);
- with (S_Client) do
+ P_Client := TPanel.Create(SB_Main);
+ with (P_Client) do
   begin
    Parent := SB_Main;
+   ParentBackground := false;
    Left := 63;
    Top  := 2;
    Height := 16;
    Width := 30;
    ShowHint := true;
+   BevelOuter := bvNone;
    Hint := 'Odpojeno od hJOP serveru';
-   Brush.Color := clRed;
+   Color := clRed;
+   Caption := '';
   end;
 end;
 
@@ -209,6 +219,14 @@ begin
      Self.ShowChild(F_Connect);
     end;
  end;
+end;
+
+procedure TF_Main.PuLIOnDblClick(Sender:TObject);
+begin
+ if (uLI.connected) then
+  begin
+   Application.MessageBox(PChar('uLI-master verze HW:'+uLI.version.hw+', SW:'+uLI.version.sw), 'Info', MB_OK OR MB_ICONINFORMATION);
+  end;
 end;
 
 end.//unit

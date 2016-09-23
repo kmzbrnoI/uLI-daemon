@@ -268,8 +268,8 @@ begin
  // update okynka
  F_Main.A_ServerConnect.Enabled    := false;
  F_Main.A_ServerDisconnect.Enabled := true;
- F_Main.S_Client.Brush.Color       := clYellow;
- F_Main.S_Client.Hint              := 'Probíhá handshake...';
+ F_Main.P_Client.Color             := clYellow;
+ F_Main.P_Client.Hint              := 'Probíhá handshake...';
 
  Self.fstatus := TPanelConnectionStatus.handshake;
 
@@ -289,8 +289,8 @@ begin
  // aktualizace okynka
  F_Main.A_ServerConnect.Enabled    := true;
  F_Main.A_ServerDisconnect.Enabled := false;
- F_Main.S_Client.Brush.Color       := clRed;
- F_Main.S_Client.Hint              := 'Odpojeno od hJOP serveru';
+ F_Main.P_Client.Color             := clRed;
+ F_Main.P_Client.Hint              := 'Odpojeno od hJOP serveru';
 
  // vypnout Rocomaus
  uLI.HardResetSlots();
@@ -370,7 +370,7 @@ begin
        'Upozornìní', MB_OK OR MB_ICONWARNING);
 
    Self.fstatus := TPanelConnectionStatus.opened;
-   F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, probíhá autorizace...';
+   F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, probíhá autorizace...';
 
    // ziskame seznam oblasti rizeni (to muzeme i bez autorizace)
    //Self.SendLn('-;OR-LIST;');
@@ -402,8 +402,8 @@ begin
    Self.fauthorised := (LowerCase(Self.parsed[4]) = 'ok');
    if (Self.fauthorised) then
     begin
-     F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
-     F_Main.S_Client.Brush.Color := clGreen;
+     F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
+     F_Main.P_Client.Color := clGreen;
 
      TCPServer.BroadcastAuth(true);
 
@@ -416,8 +416,8 @@ begin
      end;
 
     end else begin
-     F_Main.S_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
-     F_Main.S_Client.Brush.Color := clRed;
+     F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
+     F_Main.P_Client.Color := clRed;
      Application.MessageBox(PChar('Nepodaøilo se autoriivat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
      Self.Disconnect();
     end;
