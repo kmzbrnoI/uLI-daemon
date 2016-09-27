@@ -152,7 +152,14 @@ begin
 
   // pripojeni k serveru z argumentu
   if ((server <> '') and (TCPClient.toAuth.username <> '') and (TCPClient.toAuth.password <> '')) then
-    TCPClient.Connect(server, port);
+   begin
+    try
+      TCPClient.Connect(server, port);
+    except
+      on E:Exception do
+        Application.MessageBox(PChar('Nelze se pøipojit k hJOPserveru:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
+    end;
+   end;
 
   Application.Run;
 end.

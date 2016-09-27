@@ -260,7 +260,12 @@ begin
      TCPClient.toAuth.username := parsed[3];
      TCPClient.toAuth.password := parsed[4];
 
-     TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
+     try
+       TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
+     except
+       on E:Exception do
+         F_Main.LogMessage('Nelze se pøipojit k hJOPserveru: '+E.Message);
+     end;
     end;
  end else if (parsed[0] = 'LOKO') then begin
    // LOKO;slot;[addr;token];[addr;token];...
