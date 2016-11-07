@@ -40,6 +40,7 @@ type
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
      procedure CreateShapes();
      procedure LogMessage(msg:string);
+     procedure ClearMessage();
      procedure UpdateTitle();
      procedure ShowChild(form:TForm);
      procedure Open(port:string);
@@ -189,6 +190,12 @@ procedure TF_Main.LogMessage(msg:string);
 begin
  Self.SB_Main.Panels[1].Text := msg;
  Self.SB_Main.Hint := msg;
+end;
+
+procedure TF_Main.ClearMessage();
+begin
+ Self.SB_Main.Panels[1].Text := '';
+ Self.SB_Main.Hint := '';
 end;
 
 procedure TF_Main.UpdateTitle();

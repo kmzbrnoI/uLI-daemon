@@ -263,6 +263,10 @@ begin
  F_Main.P_ULI.Color := clYellow;
  F_Main.P_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
 
+ // close if uLI does not respond in a few seconds
+ Self.tKAReceiveTimer.Enabled := true;
+ Self.KAreceiveTimeout := 0;
+
  // reset uLI status
  Self.uLIStatus := _DEF_ULI_STATUS;
  Self.SetStatus(Self.uLIStatus);
@@ -320,6 +324,7 @@ begin
  if (Self.ComPort.Connected) then Exit();
  Self.ComPort.Port := port;
 
+ F_Main.ClearMessage();
  Self.WriteLog(tllCommands, 'OPENING port='+port+' br='+BaudRateToStr(Self.ComPort.BaudRate)+' sb='+StopBitsToStr(Self.ComPort.StopBits)+' db='+DataBitsToStr(Self.ComPort.DataBits)+' fc='+FlowControlToStr(Self.ComPort.FlowControl.FlowControl));
 
  try
