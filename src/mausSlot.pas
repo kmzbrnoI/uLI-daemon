@@ -410,7 +410,7 @@ begin
    Enabled := false;
    Top := 11;
    OnClick := Self.OnCHBTotalClick;
-   Width := 70;
+   Width := 75;
   end;
 
  Self.gui.B_Release := TButton.Create(Self.gui.panel);
