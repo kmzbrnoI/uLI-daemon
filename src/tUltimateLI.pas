@@ -810,13 +810,19 @@ begin
  Self.tKAReceiveTimer.Enabled := new.aliveSending;
  Self.KAreceiveTimeout := 0;
 
- if (not Self.uLIStatusValid) then TCPServer.BroadcastAuth(true);
-
  blackout := ((Self.status.sense) and (not new.sense));
  turnon   := ((not Self.status.sense) and (new.sense) and (not new.transistor));
 
- Self.uLIStatus      := new;
- Self.uLIStatusValid := true;
+ if (not Self.uLIStatusValid) then
+  begin
+   // these variables must be changed before BroadcastAuth calling
+   Self.uLIStatus      := new;
+   Self.uLIStatusValid := true;
+   TCPServer.BroadcastAuth(true);
+  end else begin
+   Self.uLIStatus      := new;
+   Self.uLIStatusValid := true;
+  end;
 
  if (blackout) then
   begin
