@@ -25,6 +25,7 @@ program uLIdaemon;
     "-p" password
     "-s" server (ip/dns)
     "-pt" port
+    "-l" zobrazit logovaci okno
 
  napr.
    uLI-daemon.exe -u root -p heslo -s server-tt -p 1234
@@ -146,6 +147,11 @@ begin
      Inc(i);
      port := StrToIntDef(ParamStr(i), _DEFAULT_PORT);
    end;
+   if (arg = '-l') then
+    begin
+     F_Debug.Show();
+     F_Debug.CHB_DataLogging.Checked := true;
+    end;
 
    Inc(i);
   end;//while

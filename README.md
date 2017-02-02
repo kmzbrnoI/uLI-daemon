@@ -48,6 +48,7 @@ uLI-daemon podporuje až 6 slotů pro lokomotivy. Sloty se číslují 1..6.
  * "-p" password
  * "-s" server (ip/dns)
  * "-pt" port
+ * "-l" zobrazit logovací okno
 
  např.
    uLI-daemon.exe -u root -p heslo -s server-tt -p 1234
