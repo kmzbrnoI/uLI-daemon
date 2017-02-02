@@ -47,12 +47,15 @@ object F_Main: TF_Main
       ShortCut = 115
       OnExecute = A_DebugExecute
     end
-    object A_ServerConnect: TAction
-      Caption = 'A_ServerConnect'
+    object A_Errors: TAction
+      Caption = 'Errors'
+      ShortCut = 16453
+      OnExecute = A_ErrorsExecute
     end
-    object A_ServerDisconnect: TAction
-      Caption = 'A_ServerDisconnect'
-      Enabled = False
+    object A_ResetCounter: TAction
+      Caption = 'A_ResetCounter'
+      ShortCut = 16466
+      OnExecute = A_ResetCounterExecute
     end
   end
 end

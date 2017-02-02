@@ -16,8 +16,8 @@ type
     AL_Main: TActionList;
     A_Debug: TAction;
     SB_Main: TStatusBar;
-    A_ServerConnect: TAction;
-    A_ServerDisconnect: TAction;
+    A_Errors: TAction;
+    A_ResetCounter: TAction;
     procedure FormShow(Sender: TObject);
     procedure A_DebugExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -25,6 +25,8 @@ type
     procedure SB_MainDblClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure A_ErrorsExecute(Sender: TObject);
+    procedure A_ResetCounterExecute(Sender: TObject);
   private
     procedure PuLIOnDblClick(Sender:TObject);
 
@@ -38,6 +40,8 @@ type
     activeMDIform : TForm;
 
      procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
+     procedure OnuLIUsartMsgCntChange(Sender:TObject);
+
      procedure CreateShapes();
      procedure LogMessage(msg:string);
      procedure ClearMessage();
@@ -128,9 +132,17 @@ begin
  if (Assigned(F_Debug)) then F_Debug.Log('uLI: '+msg);
 end;
 
+procedure TF_Main.OnuLIUsartMsgCntChange(Sender:TObject);
+begin
+ if (Self.SB_Main.Panels.Count <> 3) then Exit();
+ Self.SB_Main.Panels[1].Text := IntToStr(uLI.usartMsgTimeoutCnt) + '/' + IntToStr(uLI.usartMsgTotalCnt);
+ if (uLI.usartMsgTotalCnt > 0) then
+   Self.SB_Main.Panels[1].Text := Self.SB_Main.Panels[1].Text + Format(': %4.1f', [ uLI.usartMsgTimeoutCnt*100/uLI.usartMsgTotalCnt ]) + ' %';
+end;
+
 procedure TF_Main.SB_MainDblClick(Sender: TObject);
 begin
- Self.SB_Main.Panels[1].Text := '';
+ Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := '';
  Self.SB_Main.Hint := '';
 end;
 
@@ -188,13 +200,34 @@ end;
 
 procedure TF_Main.LogMessage(msg:string);
 begin
- Self.SB_Main.Panels[1].Text := msg;
+ Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := msg;
  Self.SB_Main.Hint := msg;
+end;
+
+procedure TF_Main.A_ErrorsExecute(Sender: TObject);
+var sp:TStatusPanel;
+begin
+ if (Self.SB_Main.Panels.Count = 2) then begin
+   // add panel
+   sp := Self.SB_Main.Panels.Insert(1);
+   sp.Width := 100;
+   Self.OnuLIUsartMsgCntChange(Self);
+   uLI.OnUsartMsgCntChange := Self.OnuLIUsartMsgCntChange;
+ end else begin
+   // remove panel
+   uLI.OnUsartMsgCntChange := nil;
+   Self.SB_Main.Panels[1].Free();
+ end;
+end;
+
+procedure TF_Main.A_ResetCounterExecute(Sender: TObject);
+begin
+ uLI.ResetUsartCounters();
 end;
 
 procedure TF_Main.ClearMessage();
 begin
- Self.SB_Main.Panels[1].Text := '';
+ Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := '';
  Self.SB_Main.Hint := '';
 end;
 

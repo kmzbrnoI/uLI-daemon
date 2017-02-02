@@ -266,10 +266,8 @@ begin
  end;
 
  // update okynka
- F_Main.A_ServerConnect.Enabled    := false;
- F_Main.A_ServerDisconnect.Enabled := true;
- F_Main.P_Client.Color             := clYellow;
- F_Main.P_Client.Hint              := 'Probíhá handshake...';
+ F_Main.P_Client.Color := clYellow;
+ F_Main.P_Client.Hint  := 'Probíhá handshake...';
 
  Self.fstatus := TPanelConnectionStatus.handshake;
 
@@ -287,10 +285,8 @@ begin
  Self.fauthorised := false;
 
  // aktualizace okynka
- F_Main.A_ServerConnect.Enabled    := true;
- F_Main.A_ServerDisconnect.Enabled := false;
- F_Main.P_Client.Color             := clRed;
- F_Main.P_Client.Hint              := 'Odpojeno od hJOP serveru';
+ F_Main.P_Client.Color := clRed;
+ F_Main.P_Client.Hint  := 'Odpojeno od hJOP serveru';
 
  // vypnout Rocomaus
  uLI.HardResetSlots();

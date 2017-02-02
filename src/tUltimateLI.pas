@@ -88,8 +88,12 @@ type
      fLogLevel: TuLILogLevel;
      fDCC : boolean;
 
+     ffusartMsgTotalCnt: Cardinal;
+     ffusartMsgTimeoutCnt: Cardinal;
+
      // events
      fOnLog: TuLILogEvent;
+     fOnUsartMsgCntChange: TNotifyEvent;
 
       procedure OntKASendTimer(Sender:TObject);
       procedure OntKAReceiveTimer(Sender:TObject);
@@ -130,6 +134,12 @@ type
       function GetConnected():boolean;
       function GetBusActive():boolean;
 
+      procedure SetUsartMsgTotalCnt(new:Cardinal);
+      procedure SetUsartMsgTimeoutCnt(new:Cardinal);
+
+      property fusartMsgTotalCnt: Cardinal read ffusartMsgTotalCnt write SetUsartMsgTotalCnt;
+      property fusartMsgTimeoutCnt: Cardinal read ffusartMsgTimeoutCnt write SetUsartMsgTimeoutCnt;
+
     public
 
      sloty: array [1.._SLOTS_CNT] of TSlot;
@@ -154,6 +164,8 @@ type
       procedure HardResetSlots();
       procedure ReleaseAllLoko();
 
+      procedure ResetUsartCounters();
+
       property OnLog: TuLILogEvent read fOnLog write fOnLog;
       property logLevel: TuLILogLevel read fLogLevel write SetLogLevel;
       property busEnabled: boolean read GetBusActive write SetBusActive;
@@ -162,6 +174,11 @@ type
       property version : TuLIVersion read uLIVersion;
       property connected : boolean read GetConnected;
       property statusValid : boolean read uLIStatusValid;
+
+      property usartMsgTotalCnt: Cardinal read ffusartMsgTotalCnt;
+      property usartMsgTimeoutCnt: Cardinal read ffusartMsgTimeoutCnt;
+
+      property OnUsartMsgCntChange: TNotifyEvent read fOnUsartMsgCntChange write fOnUsartMsgCntChange;
 
   end;
 
@@ -210,6 +227,9 @@ begin
  Self.fDCC := _DEFAULT_DCC;
  Self.ignoreKeepAliveLogging := true;
 
+ Self.ffusartMsgTotalCnt := 0;
+ Self.ffusartMsgTimeoutCnt := 0;
+
  for i := 1 to _SLOTS_CNT do Self.sloty[i] := TSlot.Create(i);
 end;
 
@@ -252,6 +272,9 @@ end;
 procedure TuLI.ComBeforeOpen(Sender:TObject);
 begin
  Self.uLIStatusValid := false;
+
+ Self.fusartMsgTotalCnt := 0;
+ Self.fusartMsgTimeoutCnt := 0;
 
  F_Main.P_ULI.Color := clYellow;
  F_Main.P_ULI.Hint := 'Pøipojuji se k uLI-master...';
@@ -487,6 +510,8 @@ var toSend: ShortString;
     funkce: TFunkce;
     changed: boolean;
 begin
+ Self.fusartMsgTotalCnt := Self.fusartMsgTotalCnt + 1;
+
  case (msg.data[1]) of
    $21: begin
      case (msg.data[2]) of
@@ -737,7 +762,16 @@ begin
         Self.WriteLog(tllErrors, 'ERR: GET: USB incoming data timeout');
         F_Main.LogMessage('uLI-ERR: GET: USB incoming data timeout');
      end;
-     $02: Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
+     $02: begin
+        Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
+
+        // report the error quite silently
+        if ((F_Main.P_ULI.Color = clGreen) or (F_Main.P_ULI.Color = clLime)) then
+          F_Main.P_ULI.Color := clTeal;
+
+        Inc(Self.ffusartMsgTotalCnt); // will not cause event to fire (ff)
+        Self.fusartMsgTimeoutCnt := Self.fusartMsgTimeoutCnt + 1; // will cause event to fire (f)
+     end;
      $03: begin
         Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
         F_Main.LogMessage('uLI-ERR: GET: Unknown command');
@@ -747,7 +781,7 @@ begin
        Self.WriteLog(tllChanges, 'GET: keep-alive');
        Self.KAreceiveTimeout := 0;
 
-       if (F_Main.P_ULI.Color = clGreen) then F_Main.P_ULI.Color := clLime
+       if ((F_Main.P_ULI.Color = clGreen) or (F_Main.P_ULI.Color = clTeal)) then F_Main.P_ULI.Color := clLime
        else if (F_Main.P_ULI.Color = clLime) then F_Main.P_ULI.Color := clGreen;
      end;
      $06: begin
@@ -1155,6 +1189,36 @@ end;
 function TuLI.GetBusActive():boolean;
 begin
  Result := ((uLIStatusValid) and (uLIStatus.transistor) and (uLIStatus.sense));
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SetUsartMsgTotalCnt(new:Cardinal);
+begin
+ if (Self.ffusartMsgTotalCnt <> new) then begin
+   Self.ffusartMsgTotalCnt := new;
+   if (Assigned(Self.fOnUsartMsgCntChange)) then Self.fOnUsartMsgCntChange(Self);
+ end else begin
+   Self.ffusartMsgTotalCnt := new;
+ end;
+end;
+
+procedure TuLI.SetUsartMsgTimeoutCnt(new:Cardinal);
+begin
+ if (Self.ffusartMsgTimeoutCnt <> new) then begin
+   Self.ffusartMsgTimeoutCnt := new;
+   if (Assigned(Self.fOnUsartMsgCntChange)) then Self.fOnUsartMsgCntChange(Self);
+ end else begin
+   Self.ffusartMsgTimeoutCnt := new;
+ end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.ResetUsartCounters();
+begin
+ Self.ffusartMsgTotalCnt := 0; // will not cause an event to fire
+ Self.fusartMsgTimeoutCnt := 0; // will cause an event to fire
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
