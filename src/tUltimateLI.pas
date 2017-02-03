@@ -847,6 +847,9 @@ begin
  blackout := ((Self.status.sense) and (not new.sense));
  turnon   := ((not Self.status.sense) and (new.sense) and (not new.transistor));
 
+ if ((not Self.status.sense) and (new.sense)) then
+    F_Main.ClearMessage();
+
  if (not Self.uLIStatusValid) then
   begin
    // these variables must be changed before BroadcastAuth calling
