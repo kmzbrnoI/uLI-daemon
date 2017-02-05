@@ -210,6 +210,8 @@ begin
    if (Self.tcpClient.IOHandler <> nil) then Self.tcpClient.IOHandler.InputBuffer.Clear;
  end;
 
+ F_Main.ClearMessage();
+
  Self.tcpClient.Host := host;
  Self.tcpClient.Port := port;
 
