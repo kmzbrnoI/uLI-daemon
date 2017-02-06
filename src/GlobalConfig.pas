@@ -50,7 +50,7 @@ procedure TGlobConfig.LoadFile(const filename:string = _DEFAULT_FN);
 var ini:TMemIniFile;
 begin
  try
-   ini := TMemIniFile.Create(filename);
+   ini := TMemIniFile.Create(filename, TEncoding.UTF8);
  except
    Exit();
  end;
@@ -70,7 +70,7 @@ procedure TGlobConfig.SaveFile(const filename:string);
 var ini:TMemIniFile;
 begin
  try
-   ini := TMemIniFile.Create(filename);
+   ini := TMemIniFile.Create(filename, TEncoding.UTF8);
  except
    Exit();
  end;
