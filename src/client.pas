@@ -185,15 +185,17 @@ end;//ctor
 
 destructor TTCPClient.Destroy();
 begin
- if (Assigned(Self.tcpClient)) then
-   FreeAndNil(Self.tcpClient);
+ try
+   if (Assigned(Self.tcpClient)) then
+     FreeAndNil(Self.tcpClient);
 
- if (Assigned(Self.parsed)) then
-   FreeAndNil(Self.parsed);
+   if (Assigned(Self.parsed)) then
+     FreeAndNil(Self.parsed);
 
- Self.lokToSlotMap.Free();
-
- inherited;
+   Self.lokToSlotMap.Free();
+ finally
+   inherited;
+ end;
 end;//dtor
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -234,7 +236,11 @@ end;//function
 
 function TTCPClient.Disconnect():Integer;
 begin
- if (not Self.tcpClient.Connected) then Exit(1);
+ try
+   if (not Self.tcpClient.Connected) then Exit(1);
+ except
+
+ end;
 
  Self.control_disconnect := true;
  if Assigned(Self.rthread) then Self.rthread.Terminate;
@@ -564,7 +570,11 @@ end;
 
 procedure TTCPClient.SendLn(str:string);
 begin
- if (not Self.tcpClient.Connected) then Exit; 
+ try
+   if (not Self.tcpClient.Connected) then Exit;
+ except
+
+ end;
 
  try
    Self.tcpClient.Socket.WriteLn(str);

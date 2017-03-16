@@ -7,7 +7,7 @@ unit server;
 
 interface
 
-uses SysUtils, IdTCPServer, IdTCPConnection, IdGlobal,
+uses SysUtils, IdTCPServer, IdTCPConnection, IdGlobal, SyncObjs,
      Classes, StrUtils, tUltimateLIConst, Graphics, Windows,
      IdContext, ComCtrls, IdSync, Generics.Collections;
 
@@ -24,6 +24,7 @@ type
     data:string;                                                                // prijata data v plain-text forme
     fport:Word;                                                                 // aktualni port serveru
     lastAuth:TAuthStatus;                                                       // posledni stav autorizace
+    readLock:TCriticalSection;
 
      procedure OnTcpServerConnect(AContext: TIdContext);                        // event pripojeni klienta z TIdTCPServer
      procedure OnTcpServerDisconnect(AContext: TIdContext);                     // event odpojeni klienta z TIdTCPServer
@@ -110,6 +111,8 @@ begin
  Self.parsed := TStringList.Create;
  Self.lastAuth := TAuthStatus.cannot;
 
+ Self.readLock := TCriticalSection.Create();
+
  Self.tcpServer := TIdTCPServer.Create(nil);
  Self.tcpServer.OnConnect    := Self.OnTcpServerConnect;
  Self.tcpServer.OnDisconnect := Self.OnTcpServerDisconnect;
@@ -118,16 +121,20 @@ end;//ctor
 
 destructor TTCPServer.Destroy();
 begin
- if (Self.tcpServer.Active) then
-  Self.tcpServer.Active := false;
+ try
+   if (Self.tcpServer.Active) then
+    Self.tcpServer.Active := false;
 
- if (Assigned(Self.tcpServer)) then
-   FreeAndNil(Self.tcpServer);
+   if (Assigned(Self.tcpServer)) then
+     FreeAndNil(Self.tcpServer);
 
- if (Assigned(Self.parsed)) then
-   FreeAndNil(Self.parsed);
+   if (Assigned(Self.parsed)) then
+     FreeAndNil(Self.parsed);
 
- inherited;
+   Self.readLock.Free();
+ finally
+   inherited;
+ end;
 end;//dtor
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -205,14 +212,24 @@ end;
 
 procedure TTCPServer.OnTcpServerConnect(AContext: TIdContext);
 begin
- AContext.Connection.IOHandler.DefStringEncoding := TIdEncoding.enUTF8;
- F_Debug.Log('Bridge: client connected');
+ Self.tcpServer.Contexts.LockList();
+ try
+   AContext.Connection.IOHandler.DefStringEncoding := TIdEncoding.enUTF8;
+   F_Debug.Log('Bridge: client connected');
+ finally
+   Self.tcpServer.Contexts.UnlockList();
+ end;
 end;//procedure
 
 // Udalost vyvolana pri odpojeni klienta
 procedure TTCPServer.OnTcpServerDisconnect(AContext: TIdContext);
 begin
- F_Debug.Log('Bridge: client disconnected');
+ Self.tcpServer.Contexts.LockList();
+ try
+   F_Debug.Log('Bridge: client disconnected');
+ finally
+   Self.tcpServer.Contexts.UnlockList();
+ end;
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -227,24 +244,29 @@ begin
    Exit();
   end;
 
- //read data
- // data jsou schvalne globalni, aby se porad nevytvarela a nenicila dokola
- data := AContext.Connection.IOHandler.ReadLn();
-
- Self.parsed.Clear();
- ExtractStringsEx([';'], [#13, #10], data, Self.parsed);
-
- if (Self.parsed.Count > 0) then
-  Self.parsed[0] := UpperCase(Self.parsed[0])
- else
-  Exit();
+ readLock.Acquire();
 
  try
-   Self.Parse(AContext);
- except
+   //read data
+   // data jsou schvalne globalni, aby se porad nevytvarela a nenicila dokola
+   data := AContext.Connection.IOHandler.ReadLn();
 
+   Self.parsed.Clear();
+   ExtractStringsEx([';'], [#13, #10], data, Self.parsed);
+
+   if (Self.parsed.Count > 0) then
+    Self.parsed[0] := UpperCase(Self.parsed[0])
+   else
+    Exit();
+
+   try
+     Self.Parse(AContext);
+   except
+
+   end;
+ finally
+   readLock.Release();
  end;
-
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
