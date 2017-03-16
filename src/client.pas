@@ -9,11 +9,12 @@ unit client;
 interface
 
 uses SysUtils, IdTCPClient, listeningThread, IdTCPConnection, IdGlobal,
-     Classes, StrUtils, Graphics, Windows, Forms, Controls,
+     Classes, StrUtils, Graphics, Windows, Forms, Controls, ExtCtrls,
      Generics.Collections, Hash, tUltimateLIConst;
 
 const
   _DEFAULT_PORT = 5896;
+  _PING_TIMER_PERIOD_MS = 20000;
 
   // tady jsou vyjmenovane vsechny verze protokoluk pripojeni k serveru, ktere klient podporuje
   protocol_version_accept : array[0..0] of string =
@@ -43,6 +44,7 @@ type
     fauthorised:boolean;                                                        // true, pokud strojvedouci autorizovan, pouzivat \authorised
     first_connection:boolean;                                                   // true, pokud aktualni pripojovani je prvni pripojovani (po startu)
     username:string;
+    pingTimer:TTimer;
 
      procedure OnTcpClientConnected(Sender: TObject);                           // event TCP klienta pripojeni k serveru
      procedure OnTcpClientDisconnected(Sender: TObject);                        // event TCP klienta odpojeni od serveru
@@ -53,6 +55,8 @@ type
      procedure ParseLokGlobal();                                                // parsing dat s prefixem "-;LOK;G"
      procedure ParseGlobal();                                                   // parsing dat s prefixem "-;"
      procedure ParseLok();                                                      // parsing dat s prefixem "-;LOK;addr"
+
+     procedure SendPing(Sedner:TObject);
 
    public
 
@@ -170,6 +174,11 @@ begin
  Self.parsed := TStringList.Create;
  Self.first_connection := true;
 
+ Self.pingTimer := TTimer.Create(nil);
+ Self.pingTimer.Enabled := false;
+ Self.pingTimer.Interval := _PING_TIMER_PERIOD_MS;
+ Self.pingTimer.OnTimer := Self.SendPing;
+
  // vytvoreni TCP klienta
  Self.tcpClient := TIdTCPClient.Create(nil);
  Self.tcpClient.OnConnected := Self.OnTcpClientConnected;
@@ -193,6 +202,7 @@ begin
      FreeAndNil(Self.parsed);
 
    Self.lokToSlotMap.Free();
+   Self.pingTimer.Free();
  finally
    inherited;
  end;
@@ -590,6 +600,18 @@ procedure TTCPClient.LokoPlease(addr:Word; token:string);
 begin
  Self.SendLn('-;LOK;'+IntToStr(addr)+';PLEASE;'+token);
 end;//procedure
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TTCPClient.SendPing(Sedner:TObject);
+begin
+ try
+   if (Self.tcpClient.Connected) then
+     Self.SendLn('-;PING');
+ except
+
+ end;
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
