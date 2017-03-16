@@ -283,7 +283,10 @@ begin
      TCPClient.toAuth.password := parsed[4];
 
      try
-       TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
+       if (TCPClient.status = TPanelConnectionStatus.opened) then
+         TCPClient.Auth()
+       else
+         TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
      except
        on E:Exception do
          F_Main.LogMessage('Nelze se pøipojit k hJOPserveru: '+E.Message);

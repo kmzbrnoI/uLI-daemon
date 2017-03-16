@@ -71,6 +71,7 @@ type
 
      procedure SendLn(str:string);                                              // poslat zpravu (jeden radek)
      procedure LokoPlease(addr:Word; token:string);                             // zadost o lokomotivu tokenem
+     procedure Auth();
 
       property status:TPanelConnectionStatus read fstatus;                      // aktualni stav pripojeni
       property authorised:boolean read fauthorised;                             // true pokud strojvedouci autorizovan
@@ -386,11 +387,8 @@ begin
    Self.fstatus := TPanelConnectionStatus.opened;
    F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, probíhá autorizace...';
 
-   // ziskame seznam oblasti rizeni (to muzeme i bez autorizace)
-   //Self.SendLn('-;OR-LIST;');
-
    // autorizace strojvedouciho
-   Self.SendLn('-;LOK;G;AUTH;' + Self.toAuth.username + ';' + Self.toAuth.password);
+   Self.Auth();
   end
 
  else if (parsed[1] = 'OR-LIST') then
@@ -408,14 +406,17 @@ end;//procedure
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPClient.ParseLokGlobal();
-//var loko:TLokArgument;
+var oldAuth:boolean;
 begin
  if (parsed[3] = 'AUTH') then
   begin
    // autorizace uzivatele
+   oldAuth := Self.authorised;
    Self.fauthorised := (LowerCase(Self.parsed[4]) = 'ok');
    if (Self.fauthorised) then
     begin
+     if (oldAuth) then Exit();
+
      F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, autorizováno';
      F_Main.P_Client.Color := clGreen;
 
@@ -433,10 +434,20 @@ begin
       end;
 
     end else begin
+     F_Main.P_Client.Color := clYellow;
      F_Main.P_Client.Hint := 'Pøipojeno k hJOP serveru, NEAUTORIZOVÁNO : '+parsed[5];
-     F_Main.P_Client.Color := clRed;
-     Application.MessageBox(PChar('Nepodaøilo se autorizovat uživatele, odpojuji se od serveru.'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
-     Self.Disconnect();
+
+     if (oldAuth) then
+      begin
+       if (uli.busEnabled) then
+         uLI.busEnabled := false;
+       Application.MessageBox(PChar('Zrušena autorizace uživatele!'+#13#10+parsed[5]), 'Zrušena autorizace', MB_OK OR MB_ICONWARNING);
+      end else begin
+       Self.toAuth.username := '';
+       Application.MessageBox(PChar('Nepodaøilo se autorizovat uživatele!'+#13#10+parsed[5]), 'Autorizace se nezdaøila', MB_OK OR MB_ICONWARNING);
+      end;
+
+     TCPServer.BroadcastAuth();
     end;
 
    Self.username := Self.toAuth.username;
@@ -611,6 +622,13 @@ begin
  except
 
  end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TTCPClient.Auth();
+begin
+ Self.SendLn('-;LOK;G;AUTH;' + Self.toAuth.username + ';' + Self.toAuth.password);
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
