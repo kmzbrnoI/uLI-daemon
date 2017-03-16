@@ -289,6 +289,7 @@ begin
  F_Main.P_Client.Hint  := 'Probíhá handshake...';
 
  Self.fstatus := TPanelConnectionStatus.handshake;
+ Self.pingTimer.Enabled := true;
 
  // odeslat handshake
  Self.SendLn('-;HELLO;'+Self._PROTOCOL_VERSION+';');
@@ -301,6 +302,7 @@ begin
 
  // status klienta na odpojen
  Self.fstatus := TPanelConnectionStatus.closed;
+ Self.pingTimer.Enabled := false;
  Self.fauthorised := false;
 
  // aktualizace okynka
