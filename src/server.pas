@@ -76,10 +76,11 @@ implementation
 /////////////////////////// KLIENT -> SERVER ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-LOGIN;server;port;username;password      - pozadavek k pripojeni k serveru a autorizaci regulatoru
-LOKO;slot;[addr;token];[addr;token];...  - pozadavek k umisteni lokomotiv do slotu \slot
-SLOTS?                                   - pozadavek na vraceni seznamu slotu a jejich obsahu
-AUTH?                                    - pozadavek na vraceni stavu autorizace vuci hJOPserveru
+LOGIN;server;port;username;password         - pozadavek k pripojeni k serveru a autorizaci regulatoru
+LOKO;slot;[addr;token];[addr;token];...     - pozadavek k umisteni lokomotiv do slotu \slot
+LOKO-RUC;slot;[addr;token];[addr;token];... - pozadavek k umisteni lokomotiv do slotu \slot a autorizaci do totalniho rizeni
+SLOTS?                                      - pozadavek na vraceni seznamu slotu a jejich obsahu
+AUTH?                                       - pozadavek na vraceni stavu autorizace vuci hJOPserveru
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// SERVER -> KLIENT ///////////////////////////////////
@@ -292,7 +293,7 @@ begin
          F_Main.LogMessage('Nelze se pøipojit k hJOPserveru: '+E.Message);
      end;
     end;
- end else if (parsed[0] = 'LOKO') then begin
+ end else if ((parsed[0] = 'LOKO') or (parsed[0] = 'LOKO-RUC')) then begin
    // LOKO;slot;[addr;token];[addr;token];...
    if (not TCPClient.authorised) then
     begin
@@ -339,7 +340,7 @@ begin
        uLI.sloty[slot].gui.P_status.Hint := 'Pøišel požadavek na autorizaci LOKO, autorizuji...';
        uLI.sloty[slot].sender := AContext;
 
-       TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), slot);
+       TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), TCPClient.SlotToAuth(slot, parsed[0] = 'LOKO-RUC'));
        TCPClient.SendLn('-;LOK;'+data[0]+';PLEASE;'+data[1]);
      except
 

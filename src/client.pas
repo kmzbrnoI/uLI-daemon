@@ -30,6 +30,11 @@ type
     password: string;
   end;
 
+  TSlotToAuth = record
+    slot: Byte;
+    ruc: boolean;
+  end;
+
   TTCPClient = class
    private const
     _PROTOCOL_VERSION = '1.0';                                                  // verze protokolu od klienta
@@ -61,7 +66,7 @@ type
    public
 
     toAuth: TtoAuth;
-    lokToSlotMap: TDictionary<Word, Byte>;
+    lokToSlotMap: TDictionary<Word, TSlotToAuth>;
 
      constructor Create();
      destructor Destroy(); override;
@@ -72,6 +77,8 @@ type
      procedure SendLn(str:string);                                              // poslat zpravu (jeden radek)
      procedure LokoPlease(addr:Word; token:string);                             // zadost o lokomotivu tokenem
      procedure Auth();
+
+     class function SlotToAuth(slot:Byte; ruc:boolean):TSlotToAuth;
 
       property status:TPanelConnectionStatus read fstatus;                      // aktualni stav pripojeni
       property authorised:boolean read fauthorised;                             // true pokud strojvedouci autorizovan
@@ -186,7 +193,7 @@ begin
  Self.tcpClient.OnDisconnected := Self.OnTcpClientDisconnected;
  Self.tcpClient.ConnectTimeout := 1500;
 
- Self.lokToSlotMap := TDictionary<Word, Byte>.Create();
+ Self.lokToSlotMap := TDictionary<Word, TSlotToAuth>.Create();
 
  // aktualni status = zavrene spojeni
  Self.fstatus := TPanelConnectionStatus.closed;
@@ -456,16 +463,7 @@ begin
    Self.toAuth.username := '';
    Self.toAuth.password := '';
    F_Main.UpdateTitle();
-  end else//if parsed[3] = AUTH
-
- if (parsed[3] = 'PLEASE-RESP') then
-  begin
-   // TODO
-   {if (parsed.Count > 5) then
-     F_NewLoko.ServerResponse(parsed[4] = 'ok', parsed[5])
-   else
-     F_NewLoko.ServerResponse(parsed[4] = 'ok', ''); }
-  end;
+  end;//if parsed[3] = AUTH
 end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -493,7 +491,7 @@ begin
 
  if (parsed[3] = 'AUTH') then begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
-   slot := Self.lokToSlotMap[addr];
+   slot := Self.lokToSlotMap[addr].slot;
    hvIndex := uLI.sloty[slot].GetHVIndex(addr);
 
    if (hvindex = -1) then
@@ -504,6 +502,16 @@ begin
       HV.total := (parsed[4] = 'total');
       uLI.sloty[slot].AddLoko(HV);
       uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
+
+      if ((not HV.total) and (Self.lokToSlotMap[addr].ruc)) then
+       begin
+        // loko se chce prevzit do rucniho rizeni
+        Self.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';TOTAL;1');
+       end;
+
+      // zamezit budoucim prebiranim na rucni rizeni
+      Self.lokToSlotMap[addr] := TTCPClient.SlotToAuth(slot, false);
+
      end else if (parsed[4] = 'not') then begin
       if (Assigned(uLI.sloty[slot].sender)) then
        begin
@@ -538,7 +546,7 @@ begin
    // vsechny nasledujici prikazy vyzaduji znalost \slot a \hvIndex
 
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
-   slot := Self.lokToSlotMap[addr];
+   slot := Self.lokToSlotMap[addr].slot;
    if (not uLI.sloty[slot].isLoko) then Exit();
    hvIndex := uLI.sloty[slot].GetHVIndex(addr);
    if (hvIndex < 0) then Exit();
@@ -631,6 +639,14 @@ end;
 procedure TTCPClient.Auth();
 begin
  Self.SendLn('-;LOK;G;AUTH;' + Self.toAuth.username + ';' + Self.toAuth.password);
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+class function TTCPClient.SlotToAuth(slot:Byte; ruc:boolean):TSlotToAuth;
+begin
+ Result.slot := slot;
+ Result.ruc := ruc;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
