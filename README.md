@@ -57,3 +57,7 @@ uLI-daemon podporuje až 6 slotů pro lokomotivy. Sloty se číslují 1..6.
  povinné argumenty, uLI-daemon se pokusí připojit k serveru. Předávání argument§
  aplikaci je zamýšleno především pro DEBUG, v reálném nasazení uLI-daemon získává
  autorizaci od hJOPpanelu.
+
+## Specialni komponenty
+
+- [JEDI Code Library](http://wiki.delphi-jedi.org/index.php?title=JEDI_Code_Library)

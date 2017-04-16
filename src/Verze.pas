@@ -6,11 +6,7 @@ unit Verze;
 
 interface
 
-uses  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, StdCtrls, Menus, ImgList, Buttons,
-  ComCtrls,inifiles, ActnList, AppEvnts, Mask, ScktComp,ToolWin,jpeg,
-  Spin, ExtDlgs, Grids, Gauges, Registry,
-  StrUtils, DateUtils, mmsystem;
+uses Windows, SysUtils, Forms, jclPEImage;
 
  function GetVersion(const FileName: string):string;
  function GetLastBuildDate():string;
@@ -42,24 +38,14 @@ begin
   end;
 end;
 
-function GetLastBuildDate:String;
-var lSearchRec: TSearchRec;
+function GetLastBuildDate():String;
  begin
-  if (FindFirst(Application.EXEName, faAnyFile, lSearchRec) = 0) then
-   begin
-    DateTimeToString(Result,'dd.mm.yyyy',FileDateToDateTime(lSearchRec.Time));
-    FindClose(lSearchRec);
-   end;
- end;
+  DateTimeToString(Result, 'dd.mm.yyyy', jclPEImage.PeReadLinkerTimeStamp(Application.ExeName));
+ end;//function
 
-function GetLastBuildTime:String;
-var lSearchRec: TSearchRec;
+function GetLastBuildTime():String;
  begin
-  if (FindFirst(Application.EXEName, faAnyFile, lSearchRec) = 0) then
-   begin
-    DateTimeToString(Result,'hh:mm:ss',FileDateToDateTime(lSearchRec.Time));
-    FindClose(lSearchRec);
-   end;
- end;
+  DateTimeToString(Result, 'hh:mm:ss', jclPEImage.PeReadLinkerTimeStamp(Application.ExeName));
+ end;//function
 
 end.//unit
