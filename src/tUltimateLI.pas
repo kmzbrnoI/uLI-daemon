@@ -606,7 +606,7 @@ begin
            toSend := toSend + #$A + #$80 + #0 + #0;
           end else begin
            // lokomotiva je rizena ovladacem
-           toSend := toSend + AnsiChar(2 + Byte(Self.sloty[addr].mausId <> (msg.data[0] AND $1F)) shl 3);
+           toSend := toSend + AnsiChar(2 + (Byte(Self.sloty[addr].mausId <> (msg.data[0] AND $1F)) shl 3));
 
            // rychlost + smer
            case (Self.sloty[addr].rychlost_stupne) of
