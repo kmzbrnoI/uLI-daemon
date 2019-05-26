@@ -509,6 +509,8 @@ var toSend: ShortString;
     i, addrOld: Integer;
     funkce: TFunkce;
     changed: boolean;
+    maxsp, speed:Integer;
+    emergencyStop:Boolean;
 begin
  Self.fusartMsgTotalCnt := Self.fusartMsgTotalCnt + 1;
 
@@ -640,11 +642,51 @@ begin
 
    $E4: begin
      case (msg.data[2]) of
-      $12: begin
-        // 28 speed steps
+      $10..$13: begin
         Self.WriteLog(tllCommands, 'GET: locomotive set speed');
 
         addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+
+        case (msg.data[2]) of
+          $10: maxsp :=  14;
+          $11: maxsp :=  27;
+          $12: maxsp :=  28;
+          $13: maxsp := 128;
+        else
+          maxsp := 128;
+        end;
+
+        emergencyStop := false;
+        speed := 0;
+        case (maxsp) of
+         14: begin
+              speed := (msg.data[5] AND $0F);
+              if (speed = 1) then
+               begin
+                emergencyStop := true;
+                speed := 0;
+               end;
+              if (speed > 0) then Dec(speed);              
+              speed := (speed * 2);               // normovani rychlosti (28/14)=2
+         end;
+
+         27, 28: begin
+              speed := ((msg.data[5] AND $0F) shl 1) OR ((msg.data[5] AND $10) shr 4);
+              if (speed = 2) then emergencyStop := true;              
+              if ((speed >= 1) and (speed <= 3)) then speed := 0;
+              if (speed >= 4) then speed := speed-3;
+         end;
+
+         128:begin
+              speed := (msg.data[5] AND $7F);
+              if (speed = 1) then
+               begin
+                speed := 0;
+                emergencyStop := true;
+               end;
+              speed := Round(speed * (28/128));   // normovani rychlosti
+         end;
+        end;
 
         if (((addr >= 1) and (addr <= _SLOTS_CNT)) and ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
          begin
@@ -661,19 +703,13 @@ begin
           // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
 
           tmpSmer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
-          tmp := ((msg.data[5] AND $0F) shl 1) OR ((msg.data[5] AND $10) shr 4);
-          if (tmp <= 3) then
+          if (emergencyStop) then
            begin
-            if (tmp = 2) then
-             begin
-              // emergency stop -> uvolnit HV ze slotu
-              Self.sloty[addr].ReleaseLoko();
-             end else begin
-              // normal stop
-              if (Self.sloty[addr].total) then Self.sloty[addr].SetRychlostSmer(0, tmpSmer);
-             end;
+            // emergency stop -> uvolnit HV ze slotu
+            Self.sloty[addr].ReleaseLoko();
            end else begin
-             if (Self.sloty[addr].total) then Self.sloty[addr].SetRychlostSmer(tmp-3, tmpSmer)
+            // normal stop
+            if (Self.sloty[addr].total) then Self.sloty[addr].SetRychlostSmer(speed, tmpSmer);
            end;
           if (not Self.sloty[addr].total) then Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
          end;
