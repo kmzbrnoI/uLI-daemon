@@ -23,6 +23,8 @@ type
     data:Byte;                                                                    // dat, ktera se maji do CV zapsat.
   end;
 
+  THVFuncType = (permanent = 0, momentary = 1);
+
   THV = class
    private
      procedure DefaultData();                                                   // nastavi vsechna data na default hodnoty
@@ -42,20 +44,21 @@ type
      smer:Integer;                                                              // aktualni smer
      orid:string;                                                               // id oblasti rizeni, ve ktere se nachazi loko
      ukradeno:boolean;                                                          // jestli je loko ukradeno
-     total:boolean;                                                             // jestli je loko v totalnim rucnim rizeni
+     total:boolean;
 
      POMtake : TList<THVPomCV>;                                                 // seznam POM pri prevzeti do automatu
      POMrelease : TList<THVPomCV>;                                              // seznam POM pri uvolneni to rucniho rizeni
 
      funcVyznam:array[0.._MAX_FUNC] of string;                                  // seznam popisu funkci hnaciho vozidla
+     funcType:array[0.._MAX_FUNC] of THVFuncType;                               // typy funkci hnaciho vozidla
 
      procedure ParseData(data:string);                                          // parse dat HV ze serveru
      constructor Create(data:string); overload;                                 // vytvoreni HV s daty ze serveru
      destructor Destroy(); override;                                            // zniceni HV
-
-     function GetPanelLokString():string;                                       // vytvoreni stringu obsahujici vsechna data HV pro server
-
      function SerializeFunctions(start,fin:Integer):string;
+
+     class function CharToHVFuncType(c:char):THVFuncType;
+     class function HVFuncTypeToChar(t:THVFuncType):char;
   end;
 
 implementation
@@ -158,6 +161,18 @@ begin
        Self.funcVyznam[i] := '';
     end;
 
+    // typy funkci
+   if (str.Count > 16) then
+    begin
+     for i := 0 to _MAX_FUNC do
+       if (i < Length(str[16])) then
+        Self.funcType[i] := CharToHVFuncType(str[16][i+1])
+       else
+        Self.funcType[i] := THVFuncType.permanent;
+    end else begin
+     for i := 0 to _MAX_FUNC do
+       Self.funcType[i] := THVFuncType.permanent;
+    end;
  except
 
  end;
@@ -189,28 +204,6 @@ end;//procedure
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function THV.GetPanelLokString():string;
-var i:Integer;
-begin
- // format zapisu: nazev|majitel|oznaceni|poznamka|adresa|trida|souprava|stanovisteA|funkce
- // souprava je bud cislo soupravy, nebo znak '-'
- Result := Self.Nazev + '|' + Self.Majitel + '|' + Self.Oznaceni + '|' + Self.Poznamka + '|' +
-           IntToStr(Self.adresa) + '|' + IntToStr(Integer(Self.Trida)) + '|' + Self.souprava + '|' +
-           IntToStr(Integer(Self.StanovisteA)) + '|';
-
- for i := 0 to _MAX_FUNC do
-  begin
-   if (Self.funkce[i]) then
-     Result := Result + '1'
-   else
-     Result := Result + '0';
-  end;
-
- Result := Result + '||||'+Self.orid+'|';
-end;//function
-
-////////////////////////////////////////////////////////////////////////////////
-
 function THV.SerializeFunctions(start,fin:Integer):string;
 var i:Integer;
 begin
@@ -222,6 +215,24 @@ begin
     true  : Result := Result + '1';
    end;
   end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+class function THV.CharToHVFuncType(c:char):THVFuncType;
+begin
+ if (UpperCase(c) = 'M') then
+   Result := THVFuncType.momentary
+ else
+   Result := THVFuncType.permanent;
+end;
+
+class function THV.HVFuncTypeToChar(t:THVFuncType):char;
+begin
+ if (t = THVFuncType.momentary) then
+   Result := 'M'
+ else
+   Result := 'P';
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
