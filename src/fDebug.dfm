@@ -40,7 +40,7 @@ object F_Debug: TF_Debug
   object CHB_DataLogging: TCheckBox
     Left = 8
     Top = 8
-    Width = 97
+    Width = 89
     Height = 17
     Caption = 'Logovat data'
     TabOrder = 0
@@ -62,7 +62,7 @@ object F_Debug: TF_Debug
       end>
     ReadOnly = True
     RowSelect = True
-    TabOrder = 1
+    TabOrder = 4
     ViewStyle = vsReport
     OnChange = LV_LogChange
     OnCustomDrawItem = LV_LogCustomDrawItem
@@ -73,7 +73,7 @@ object F_Debug: TF_Debug
     Width = 598
     Height = 140
     ReadOnly = True
-    TabOrder = 2
+    TabOrder = 5
     OnChange = M_DataChange
   end
   object B_ClearLog: TButton
@@ -81,7 +81,7 @@ object F_Debug: TF_Debug
     Top = 8
     Width = 75
     Height = 17
-    Caption = 'Clear'
+    Caption = 'Smazat log'
     TabOrder = 3
     OnClick = B_ClearLogClick
   end
@@ -91,7 +91,7 @@ object F_Debug: TF_Debug
     Width = 598
     Height = 57
     Caption = ' Odeslat data '
-    TabOrder = 4
+    TabOrder = 6
     object E_Send: TEdit
       Left = 16
       Top = 24
@@ -111,12 +111,21 @@ object F_Debug: TF_Debug
     end
   end
   object CHB_KeepAlive: TCheckBox
-    Left = 128
+    Left = 103
     Top = 8
-    Width = 121
+    Width = 113
     Height = 17
     Caption = 'Logovat keep-alive'
-    TabOrder = 5
+    TabOrder = 1
+    OnClick = CHB_KeepAliveClick
+  end
+  object CHB_PingLogging: TCheckBox
+    Left = 222
+    Top = 8
+    Width = 82
+    Height = 17
+    Caption = 'Logovat ping'
+    TabOrder = 2
     OnClick = CHB_KeepAliveClick
   end
 end
