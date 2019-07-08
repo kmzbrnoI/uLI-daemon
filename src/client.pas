@@ -344,6 +344,10 @@ begin
  F_Debug.Log('GET: '+data);
 
  try
+   if (Self.parsed.Count < 2) then
+     Exit();
+   Self.parsed[1] := UpperCase(Self.parsed[1]);
+
    // zakladni rozdeleni podle prefixu
    if (Self.parsed[0] = '-') then
     begin
@@ -407,7 +411,7 @@ begin
   end
  else if (parsed[1] = 'DCC') then
   begin
-   uLI.DCC := (parsed[2] = 'GO');
+   uLI.DCC := (UpperCase(parsed[2]) = 'GO');
   end;
 
 end;
@@ -417,7 +421,7 @@ end;
 procedure TTCPClient.ParseLokGlobal();
 var oldAuth:boolean;
 begin
- if (parsed[3] = 'AUTH') then
+ if (UpperCase(parsed[3]) = 'AUTH') then
   begin
    // autorizace uzivatele
    oldAuth := Self.authorised;
@@ -488,6 +492,7 @@ var addr:Word;
     HV:THV;
 begin
  addr := StrToInt(parsed[2]);
+ parsed[3] := UpperCase(parsed[3]);
 
  if (parsed[3] = 'AUTH') then begin
    if (not Self.lokToSlotMap.ContainsKey(addr)) then Exit();
