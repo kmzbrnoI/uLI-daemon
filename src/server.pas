@@ -220,7 +220,7 @@ begin
  finally
    Self.tcpServer.Contexts.UnlockList();
  end;
-end;//procedure
+end;
 
 // Udalost vyvolana pri odpojeni klienta
 procedure TTCPServer.OnTcpServerDisconnect(AContext: TIdContext);
@@ -231,7 +231,7 @@ begin
  finally
    Self.tcpServer.Contexts.UnlockList();
  end;
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -268,7 +268,7 @@ begin
  finally
    readLock.Release();
  end;
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -383,7 +383,7 @@ end;
 function TTCPServer.IsOpenned():boolean;
 begin
  Result := Self.tcpServer.Active;
-end;//function
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -395,7 +395,7 @@ begin
  except
 
  end;
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -408,14 +408,14 @@ begin
  finally
    Self.tcpServer.Contexts.UnlockList();
  end;
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.DisconnectClient(conn:TIdContext);
 begin
  conn.Connection.Disconnect();
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

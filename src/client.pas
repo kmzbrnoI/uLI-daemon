@@ -248,7 +248,7 @@ begin
  Self.control_disconnect := false;
 
  Result := 0;
-end;//function
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -273,7 +273,7 @@ begin
  end;
 
  Result := 0;
-end;//function
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 // eventy z IdTCPClient
@@ -300,7 +300,7 @@ begin
 
  // odeslat handshake
  Self.SendLn('-;HELLO;'+Self._PROTOCOL_VERSION+';');
-end;//procedure
+end;
 
 procedure TTCPClient.OnTcpClientDisconnected(Sender: TObject);
 begin
@@ -326,7 +326,7 @@ begin
  F_Main.UpdateTitle();
 
  if ((F_Main.close_app) and (not uLI.connected)) then F_Main.Close();
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -349,17 +349,17 @@ begin
     begin
      if (Self.parsed[1] = 'LOK') then
       begin
-       if (Self.parsed[2] = 'G') then
+       if (UpperCase(Self.parsed[2]) = 'G') then
         Self.ParseLokGlobal()
        else
         Self.ParseLok();
-     end else
+      end else
        Self.ParseGlobal();
     end;
  except
 
  end;
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -367,7 +367,7 @@ procedure TTCPClient.Timeout();
 begin
  Self.OnTcpClientDisconnected(Self);
  F_Main.SB_Main.Panels[1].Text := 'Spojení se serverem pøerušeno';
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -410,7 +410,7 @@ begin
    uLI.DCC := (parsed[2] = 'GO');
   end;
 
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -464,7 +464,7 @@ begin
    Self.toAuth.password := '';
    F_Main.UpdateTitle();
   end;//if parsed[3] = AUTH
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -615,12 +615,12 @@ begin
  end;
 
  F_Debug.Log('SEND: '+str);
-end;//procedure
+end;
 
 procedure TTCPClient.LokoPlease(addr:Word; token:string);
 begin
  Self.SendLn('-;LOK;'+IntToStr(addr)+';PLEASE;'+token);
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -474,7 +474,7 @@ begin
        end else ok := false;
      end else ok := false;
    end;//while
-end;//procedur
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -720,7 +720,7 @@ begin
      end;// case msg.data[2]
    end;//$E4
  end;//case msg.data[1]
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -798,7 +798,7 @@ begin
 
   end;//case msg.data[1]
  end;//case
-end;//procedure
+end;
 
 procedure TuLI.ParseuLIStatus(var msg:TBuffer);
 var new:TuLIStatus;
@@ -907,7 +907,7 @@ begin
   end;
 
  DoneAsync(asp);
-end;//procedure
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -966,7 +966,7 @@ begin
  Result.Count := Length(str);
  for i := 0 to Result.Count-1 do
    Result.data[i] := ord(str[i+1]);
-end;//function
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 

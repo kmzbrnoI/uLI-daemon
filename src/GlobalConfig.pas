@@ -64,7 +64,7 @@ begin
  Self.data.frmSize.Y := ini.ReadInteger('F_Main', 'sizeY', 300);
 
  Self.port.port := ini.ReadString('COM', 'port', '');
-end;//function
+end;
 
 procedure TGlobConfig.SaveFile(const filename:string);
 var ini:TMemIniFile;
@@ -84,12 +84,12 @@ begin
  ini.WriteString('COM', 'port', Self.port.port);
 
  ini.UpdateFile();
-end;//function
+end;
 
 procedure TGlobConfig.SaveFile();
 begin
  Self.SaveFile(Self.filename);
-end;//function
+end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
