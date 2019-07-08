@@ -37,7 +37,7 @@ type
 
   TTCPClient = class
    private const
-    _PROTOCOL_VERSION = '1.0';                                                  // verze protokolu od klienta
+    _PROTOCOL_VERSION = '1.1';                                                  // verze protokolu od klienta
 
    private
     rthread: TReadingThread;                                                    // ctecti vlakno (poslouchani probiha v jinem vlakne)
