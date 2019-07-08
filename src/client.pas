@@ -14,7 +14,7 @@ uses SysUtils, IdTCPClient, listeningThread, IdTCPConnection, IdGlobal,
 
 const
   _DEFAULT_PORT = 5896;
-  _PING_TIMER_PERIOD_MS = 20000;
+  _PING_TIMER_PERIOD_MS = 5000;
 
   // tady jsou vyjmenovane vsechny verze protokoluk pripojeni k serveru, ktere klient podporuje
   protocol_version_accept : array[0..1] of string =
