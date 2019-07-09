@@ -3,7 +3,8 @@
 Tento program slouží jako klientská aplikace k hJOP serveru k řízení hnacích
 vozidel pomocí Roco multiMaus a uLI-master.
 
-(c) Jan Horacek 2016
+Vytvořil Jan Horáček.
+
 Licencováno pod Apache License v2.0.
 
 ## Funkce
