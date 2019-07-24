@@ -10,13 +10,21 @@ uses tHnaciVozidlo, SysUtils, Generics.Collections, Forms, ExtCtrls, Controls,
       StdCtrls, Graphics, IdContext;
 
 type
+  TMomRelease = record
+    f: Integer;
+    shutdownTime: TDateTime;
+  end;
+
   TSlot = class
     public const
       _MAUS_NULL = -1;
+      _MOM_KEEP_ON_MS = 750;
 
     private
 
       imagSmer : Integer;
+      q_mom_release:TQueue<TMomRelease>; // fronta momentary funkci k vypnuti
+      T_Mom_Release: TTimer;
 
        function fIsLoko():boolean;
        function fIsMaus():boolean;
@@ -35,12 +43,18 @@ type
        procedure ONBTakeClick(Sender:TObject);
        procedure OnCHBTotalClick(Sender:TObject);
 
+       procedure T_Mom_ReleaseTimer(Sender: TObject);
+       procedure MomRelease(mr:TMomRelease);
+       function CreateMomRelease(f: Integer; shutdownTime: TDateTime):TMomRelease; overload;
+       function CreateMomRelease(f: Integer):TMomRelease; overload;
+
     public
       mausAddr : Integer;  // primarni klic
       mausId : Integer;
-      HVs : TList<THV>;
+      HVs : TObjectList<THV>;
       sender : TIdContext;
       updating : boolean;
+      mausFunkce: TFunkce; // aktualni funkce zobrazene na mysi (pozor: momentary funkce!)
 
       gui : record
         panel : TPanel;
@@ -93,22 +107,29 @@ begin
  inherited Create();
  Self.mausAddr := mausAddr;
  Self.mausId   := _MAUS_NULL;
- Self.HVs      := TList<THV>.Create();
+ Self.HVs      := TObjectList<THV>.Create();
  Self.imagSmer := 0;
  Self.CreateGUI();
  Self.sender   := nil;
  Self.updating := false;
+ Self.q_mom_release := TQueue<TMomRelease>.Create();
+
+ Self.T_Mom_Release := TTimer.Create(nil);
+ Self.T_Mom_Release.OnTimer := Self.T_Mom_ReleaseTimer;
+ Self.T_Mom_Release.Interval := 200;
+ Self.T_Mom_Release.Enabled := false; // enabled with first loco
 end;
 
 destructor TSlot.Destroy();
-var i:Integer;
 begin
+ Self.T_Mom_Release.Enabled := false;
+
  if (Self.HVs.Count > 0) then
-  begin
    Self.ReleaseLoko();
-   for i := 0 to Self.HVs.Count-1 do Self.HVs[i].Free();
-  end;
  Self.HVs.Free();
+ Self.q_mom_release.Free();
+ Self.T_Mom_Release.Free();
+
  inherited;
 end;
 
@@ -229,22 +250,40 @@ end;
 procedure TSlot.SetFunctions(start, fin:Integer; new:TFunkce);
 var HV:THV;
     i:Integer;
+    momTurnOff:TFunkce;
 begin
+ for i := 0 to _MAX_FUNC do
+   momTurnOff[i] := ((i >= start) and (i <= fin)); // set temporary true everywhere
+
  for HV in Self.HVs do
   begin
-   for i := start to fin do HV.funkce[i] := new[i];
+   for i := start to fin do
+    begin
+     if ((HV.funcType[i] = THVFuncType.momentary) and (not HV.funkce[i]) and (new[i] <> Self.mausFunkce[i])) then
+      begin
+       HV.funkce[i] := true
+      end else begin
+       momTurnOff[i] := false;
+       HV.funkce[i] := new[i];
+      end;
+    end;
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';F;'+IntToStr(start)+'-'+IntToStr(fin)+';'+
       HV.SerializeFunctions(start, fin));
   end;
+
+ for i := start to fin do
+   Self.mausFunkce[i] := new[i];
+
+ for i := 0 to _MAX_FUNC do
+   if (momTurnOff[i]) then
+     Self.q_mom_release.Enqueue(Self.CreateMomRelease(i)); // enqueue for release
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
 
 procedure TSlot.HardResetSlot();
-var HV:THV;
 begin
  Self.mausId := _MAUS_NULL;
- for HV in Self.HVs do HV.Free();
  Self.HVs.Clear();
 
  Self.gui.L_Speed.Caption := '-';
@@ -275,7 +314,11 @@ begin
  try
    Self.updating := true;
 
-   if (Self.HVs.Count = 0) then Self.imagSmer := 0;
+   if (Self.HVs.Count = 0) then
+    begin
+     Self.imagSmer := 0;
+     Self.T_Mom_Release.Enabled := true;
+    end;
    Self.HVs.Add(HV);
    Self.UpdateLokString();
 
@@ -306,13 +349,14 @@ procedure TSlot.RemoveLoko(index:Integer);
 begin
  try
    Self.updating := true;
-
-   Self.HVs[index].Free();
    Self.HVs.Delete(index);
 
    Self.UpdateLokString();
    if (Self.HVs.Count = 0) then
     begin
+     Self.q_mom_release.Clear();
+     Self.T_Mom_Release.Enabled := false;
+
      Self.gui.L_Speed.Caption := '-';
      Self.gui.CHB_Total.Checked := false;
      Self.gui.CHB_Total.Enabled := false;
@@ -552,6 +596,39 @@ begin
  finally
    Self.updating := false;
  end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TSlot.T_Mom_ReleaseTimer(Sender: TObject);
+begin
+ if (Self.q_mom_release.Count > 0) then
+   if (Self.q_mom_release.Peek().shutdownTime <= Now) then
+     Self.MomRelease(Self.q_mom_release.Dequeue());
+end;
+
+procedure TSlot.MomRelease(mr:TMomRelease);
+var HV:THV;
+begin
+ for HV in Self.HVs do
+  begin
+   if (HV.funkce[mr.f]) then
+    begin
+     HV.funkce[mr.f] := false;
+     TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';F;'+IntToStr(mr.f)+';0');
+    end;
+  end;
+end;
+
+function TSlot.CreateMomRelease(f: Integer; shutdownTime: TDateTime):TMomRelease;
+begin
+ Result.f := f;
+ Result.shutdownTime := shutdownTime;
+end;
+
+function TSlot.CreateMomRelease(f: Integer):TMomRelease;
+begin
+ Result := Self.CreateMomRelease(f, Now+EncodeTime(0, 0, _MOM_KEEP_ON_MS div 1000, _MOM_KEEP_ON_MS mod 1000));
 end;
 
 ////////////////////////////////////////////////////////////////////////////////

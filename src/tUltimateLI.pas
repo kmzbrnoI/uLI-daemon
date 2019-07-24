@@ -1038,6 +1038,8 @@ begin
   begin
    // lokomotiva neni rizena ovladacem
    toSend := toSend + #$A + #$80 + #0 + #0;
+   for i := 0 to _MAX_FUNC do
+     Self.sloty[addr].mausFunkce[i] := false;
   end else begin
    // lokomotiva je rizena ovladacem
    toSend := toSend + AnsiChar(2 + (Byte(Self.sloty[addr].mausId <> (callByte AND $1F)) shl 3));
@@ -1064,6 +1066,8 @@ begin
    tmp := 0;
    for i := 5 to 12 do tmp := tmp + (byte(Self.sloty[addr].funkce[i]) shl (i-5));
    toSend := toSend + AnsiChar(tmp);
+
+   Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
   end;
 
  Self.WriteLog(tllCommands, 'PUT: locomotive information');
