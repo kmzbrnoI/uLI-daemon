@@ -1038,8 +1038,9 @@ begin
   begin
    // lokomotiva neni rizena ovladacem
    toSend := toSend + #$A + #$80 + #0 + #0;
-   for i := 0 to _MAX_FUNC do
-     Self.sloty[addr].mausFunkce[i] := false;
+   if ((addr > 0) and (addr < _SLOTS_CNT)) then
+     for i := 0 to _MAX_FUNC do
+       Self.sloty[addr].mausFunkce[i] := false;
   end else begin
    // lokomotiva je rizena ovladacem
    toSend := toSend + AnsiChar(2 + (Byte(Self.sloty[addr].mausId <> (callByte AND $1F)) shl 3));
