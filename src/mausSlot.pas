@@ -259,13 +259,19 @@ begin
   begin
    for i := start to fin do
     begin
-     if ((HV.funcType[i] = THVFuncType.momentary) and (not HV.funkce[i]) and (new[i] <> Self.mausFunkce[i])) then
+     if (new[i] <> Self.mausFunkce[i]) then
       begin
-       HV.funkce[i] := true
-      end else begin
+       if (HV.funcType[i] = THVFuncType.momentary) then
+        begin
+         if (HV.funkce[i]) then
+           momTurnOff[i] := false;
+         HV.funkce[i] := (not HV.funkce[i]);
+        end else begin
+         momTurnOff[i] := false;
+         HV.funkce[i] := new[i];
+        end;
+      end else
        momTurnOff[i] := false;
-       HV.funkce[i] := new[i];
-      end;
     end;
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';F;'+IntToStr(start)+'-'+IntToStr(fin)+';'+
       HV.SerializeFunctions(start, fin));
