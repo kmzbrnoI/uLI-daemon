@@ -1,4 +1,4 @@
-unit client;
+Ôªøunit client;
 
 {
   Trida TTCPClient zabezpecuje TCP klient soket, ktery resi komunikaci
@@ -293,7 +293,7 @@ begin
 
  // update okynka
  F_Main.P_Client.Color := clYellow;
- F_Main.P_Client.Hint  := 'ProbÌh· handshake...';
+ F_Main.P_Client.Hint  := 'Prob√≠h√° handshake...';
 
  Self.fstatus := TPanelConnectionStatus.handshake;
  Self.pingTimer.Enabled := true;
@@ -370,7 +370,7 @@ end;
 procedure TTCPClient.Timeout();
 begin
  Self.OnTcpClientDisconnected(Self);
- F_Main.SB_Main.Panels[1].Text := 'SpojenÌ se serverem p¯eruöeno';
+ F_Main.SB_Main.Panels[1].Text := 'Spojen√≠ se serverem p≈ôeru≈°eno';
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -394,11 +394,11 @@ begin
     end;//for i
 
    if (not found) then
-     Application.MessageBox(PChar('Verze protokolu, kterou pouûÌv· server ('+Self.parsed[2]+') nenÌ podporov·na'),
-       'UpozornÏnÌ', MB_OK OR MB_ICONWARNING);
+     Application.MessageBox(PChar('Verze protokolu, kterou pou≈æ√≠v√° server ('+Self.parsed[2]+') nen√≠ podporov√°na'),
+       'Upozornƒõn√≠', MB_OK OR MB_ICONWARNING);
 
    Self.fstatus := TPanelConnectionStatus.opened;
-   F_Main.P_Client.Hint := 'P¯ipojeno k hJOP serveru, probÌh· autorizace...';
+   F_Main.P_Client.Hint := 'P≈ôipojeno k hJOP serveru, prob√≠h√° autorizace...';
 
    // autorizace strojvedouciho
    Self.Auth();
@@ -433,7 +433,7 @@ begin
     begin
      if (oldAuth) then Exit();
 
-     F_Main.P_Client.Hint := 'P¯ipojeno k hJOP serveru, autorizov·no';
+     F_Main.P_Client.Hint := 'P≈ôipojeno k hJOP serveru, autorizov√°no';
      F_Main.P_Client.Color := clGreen;
 
      TCPServer.BroadcastAuth(true);
@@ -445,22 +445,22 @@ begin
          uLI.busEnabled := true;
        except
          on E:Exception do
-           Application.MessageBox(PChar('Nelze zapnout nap·jenÌ sbÏrnice pro ovladaËe:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
+           Application.MessageBox(PChar('Nelze zapnout nap√°jen√≠ sbƒõrnice pro ovladaƒçe:'+#13#10+E.Message), 'uLI-daemon', MB_OK OR MB_ICONWARNING);
        end;
       end;
 
     end else begin
      F_Main.P_Client.Color := clYellow;
-     F_Main.P_Client.Hint := 'P¯ipojeno k hJOP serveru, NEAUTORIZOV¡NO : '+parsed[5];
+     F_Main.P_Client.Hint := 'P≈ôipojeno k hJOP serveru, NEAUTORIZOV√ÅNO : '+parsed[5];
 
      if (oldAuth) then
       begin
        if (uli.busEnabled) then
          uLI.busEnabled := false;
-       Application.MessageBox(PChar('Zruöena autorizace uûivatele!'+#13#10+parsed[5]), 'Zruöena autorizace', MB_OK OR MB_ICONWARNING);
+       Application.MessageBox(PChar('Zru≈°ena autorizace u≈æivatele!'+#13#10+parsed[5]), 'Zru≈°ena autorizace', MB_OK OR MB_ICONWARNING);
       end else begin
        Self.toAuth.username := '';
-       Application.MessageBox(PChar('Nepoda¯ilo se autorizovat uûivatele!'+#13#10+parsed[5]), 'Autorizace se nezda¯ila', MB_OK OR MB_ICONWARNING);
+       Application.MessageBox(PChar('Nepoda≈ôilo se autorizovat u≈æivatele!'+#13#10+parsed[5]), 'Autorizace se nezda≈ôila', MB_OK OR MB_ICONWARNING);
       end;
 
      TCPServer.BroadcastAuth();
@@ -527,7 +527,7 @@ begin
         uLI.sloty[slot].sender := nil;
        end;
       uLI.sloty[slot].UpdateGUI();
-      Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepoda¯io autorizovat'+#13#10+parsed[5]), 'Loko neautorizov·no', MB_OK OR MB_ICONWARNING)
+      Application.MessageBox(PChar('Lokomotivu '+parsed[2]+' se nepoda≈ôio autorizovat'+#13#10+parsed[5]), 'Loko neautorizov√°no', MB_OK OR MB_ICONWARNING)
      end;
 
     end else begin

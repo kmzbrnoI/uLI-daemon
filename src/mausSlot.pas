@@ -1,4 +1,4 @@
-unit mausSlot;
+ï»¿unit mausSlot;
 
 {
   Tato unit implemenuje tridu TSlot. TSlot je slot na multiMaus (napr. 1..3).
@@ -154,7 +154,7 @@ begin
   begin
    Self.gui.P_status.Color   := clAqua;
    Self.gui.P_status.Caption := '...';
-   Self.gui.P_status.Hint    := 'Odeslán poadavek na odhlášení lokomotiv, èekám na odpovìï...';
+   Self.gui.P_status.Hint    := 'OdeslÃ¡n poÅ¾adavek na odhlÃ¡Å¡enÃ­ lokomotiv, ÄekÃ¡m na odpovÄ›Ä...';
   end;
 
  for HV in Self.HVs do
@@ -421,7 +421,7 @@ begin
   begin
    Parent := Self.gui.panel;
    Left := 80;
-   Caption := 'Pøevzít';
+   Caption := 'PÅ™evzÃ­t';
    Enabled := false;
    Top := 5;
    Width := 50;
@@ -456,7 +456,7 @@ begin
   begin
    Parent := Self.gui.panel;
    Left := 300;
-   Caption := 'Ruèní øízení';
+   Caption := 'RuÄnÃ­ Å™Ã­zenÃ­';
    Enabled := false;
    Top := 11;
    OnClick := Self.OnCHBTotalClick;
@@ -546,7 +546,7 @@ begin
 
  Self.gui.P_status.Color   := clAqua;
  Self.gui.P_status.Caption := '...';
- Self.gui.P_status.Hint    := 'Odeslán poadavek na totální øízení, èekám na odpovìï...';
+ Self.gui.P_status.Hint    := 'OdeslÃ¡n poÅ¾adavek na totÃ¡lnÃ­ Å™Ã­zenÃ­, ÄekÃ¡m na odpovÄ›Ä...';
 
  for HV in Self.HVs do
    TCPClient.SendLn('-;LOK;'+IntToStr(HV.Adresa)+';TOTAL;'+IntToStr(Integer(TCheckBox(Sender).Checked)));
@@ -559,7 +559,7 @@ begin
  Self.gui.B_Take.Enabled   := false;
  Self.gui.P_status.Color   := clAqua;
  Self.gui.P_status.Caption := '...';
- Self.gui.P_status.Hint    := 'Odeslán poadavek na totální øízení, èekám na odpovìï...';
+ Self.gui.P_status.Hint    := 'OdeslÃ¡n poÅ¾adavek na totÃ¡lnÃ­ Å™Ã­zenÃ­, ÄekÃ¡m na odpovÄ›Ä...';
 
  for HV in Self.HVs do
    if (HV.ukradeno) then

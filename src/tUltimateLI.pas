@@ -1,4 +1,4 @@
-unit tUltimateLI;
+ï»¿unit tUltimateLI;
 
 {
   Trida TuLI je rozhranim k uLI.
@@ -278,14 +278,14 @@ begin
  Self.fusartMsgTimeoutCnt := 0;
 
  F_Main.P_ULI.Color := clYellow;
- F_Main.P_ULI.Hint := 'Pøipojuji se k uLI-master...';
+ F_Main.P_ULI.Hint := 'PÅ™ipojuji se k uLI-master...';
 end;
 
 procedure TuLI.ComAfterOpen(Sender:TObject);
 begin
  Self.WriteLog(tllCommands, 'OPEN OK');
  F_Main.P_ULI.Color := clYellow;
- F_Main.P_ULI.Hint := 'Pøipojeno k uLI-master, èekám na stav...';
+ F_Main.P_ULI.Hint := 'PÅ™ipojeno k uLI-master, ÄekÃ¡m na stav...';
 
  // close if uLI does not respond in a few seconds
  Self.tKAReceiveTimer.Enabled := true;
@@ -785,7 +785,7 @@ begin
     Self.ParseuLIStatus(msg);
 
     F_Main.P_ULI.Color := clGreen;
-    F_Main.P_ULI.Hint := 'Pøipojeno k uLI-master, stav vyèten';
+    F_Main.P_ULI.Hint := 'PÅ™ipojeno k uLI-master, stav vyÄten';
   end;
 
   $13: begin
@@ -840,7 +840,7 @@ begin
    for i := 1 to _SLOTS_CNT do Self.sloty[i].mausId := TSlot._MAUS_NULL;
    Self.RepaintSlots(F_Slots);
    TCPServer.BroadcastSlots();
-   F_Main.LogMessage('Vıpadek napájení uLI-master!');
+   F_Main.LogMessage('VÃ½padek napÃ¡jenÃ­ uLI-master!');
   end else if (turnon) then
    begin
     // obnoveni napajeni sbernice -> zapnout ovladace
@@ -981,8 +981,8 @@ begin
  if (Self.KAreceiveTimeout > _KA_RECEIVE_TIMEOUT_TICKS) then
   begin
    Self.KAreceiveTimeout := 0;
-   Self.WriteLog(tllErrors, 'uLI neodpovìdìlo na keep-alive!');
-   F_Main.LogMessage('uLI neodpovìdìlo na keep-alive!');
+   Self.WriteLog(tllErrors, 'uLI neodpovÄ›dÄ›lo na keep-alive!');
+   F_Main.LogMessage('uLI neodpovÄ›dÄ›lo na keep-alive!');
    Self.Close();
   end;
 end;
@@ -1084,11 +1084,11 @@ begin
  if ((new) and (not Self.uLIStatusValid)) then
   begin
    Self.SendStatusRequest();
-   raise EuLIStatusInvalid.Create('Program nemá validní data o stavu uLI!');
+   raise EuLIStatusInvalid.Create('Program nemÃ¡ validnÃ­ data o stavu uLI!');
   end;
 
  if ((new) and (not self.uLIStatus.sense)) then
-   raise EPowerTurnedOff.Create('Zaøízení není napájeno!');
+   raise EPowerTurnedOff.Create('ZaÅ™Ã­zenÃ­ nenÃ­ napÃ¡jeno!');
 
  if (not new) then
   begin

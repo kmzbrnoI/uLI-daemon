@@ -1,4 +1,4 @@
-unit server;
+ï»¿unit server;
 
 {
   Bridge TCP server pro komunikaci s panely, ktere daemonovi davaji lokomotivy
@@ -145,8 +145,8 @@ begin
  if (Self.tcpServer.Active) then Exit();
 
  F_Main.P_Server.Color := clYellow;
- F_Main.P_Server.Hint := 'Bridge server: spouštìní...';
- F_Debug.Log('Bridge server: spouštìní...');
+ F_Main.P_Server.Hint := 'Bridge server: spouÅ¡tÄ›nÃ­...';
+ F_Debug.Log('Bridge server: spouÅ¡tÄ›nÃ­...');
 
  Self.tcpServer.DefaultPort := port;
  Self.fport := port;
@@ -157,15 +157,15 @@ begin
   on E:Exception do
    begin
     F_Main.P_Server.Color := clRed;
-    F_Main.P_Server.Hint := 'ERR: Panel server: chyba pøi startování serveru : '+E.Message;
-    F_Debug.Log('ERR: Panel server: chyba pøi startování serveru : '+E.Message);
+    F_Main.P_Server.Hint := 'ERR: Panel server: chyba pÅ™i startovÃ¡nÃ­ serveru : '+E.Message;
+    F_Debug.Log('ERR: Panel server: chyba pÅ™i startovÃ¡nÃ­ serveru : '+E.Message);
     raise;
    end;
  end;
 
  F_Main.P_Server.Color := clGreen;
- F_Main.P_Server.Hint := 'Bridge server: spuštìn';
- F_Debug.Log('Bridge server: spuštìn');
+ F_Main.P_Server.Hint := 'Bridge server: spuÅ¡tÄ›n';
+ F_Debug.Log('Bridge server: spuÅ¡tÄ›n');
 end;
 
 procedure TTCPServer.Start();
@@ -181,8 +181,8 @@ var iA : Integer;
 begin
  if (not Self.tcpServer.Active) then Exit();
 
- F_Main.P_Server.Hint := 'Bridge server: vypínám...';
- F_Debug.Log('Bridge server: vypínám...');
+ F_Main.P_Server.Hint := 'Bridge server: vypÃ­nÃ¡m...';
+ F_Debug.Log('Bridge server: vypÃ­nÃ¡m...');
  F_Main.P_Server.Color := clGray;
 
  with Self.tcpServer.Contexts.LockList do
@@ -290,7 +290,7 @@ begin
          TCPClient.Connect(parsed[1], StrToInt(parsed[2]));
      except
        on E:Exception do
-         F_Main.LogMessage('Nelze se pøipojit k hJOPserveru: '+E.Message);
+         F_Main.LogMessage('Nelze se pÅ™ipojit k hJOPserveru: '+E.Message);
      end;
     end;
  end else if ((parsed[0] = 'LOKO') or (parsed[0] = 'LOKO-RUC')) then begin
@@ -337,7 +337,7 @@ begin
      try
        uLI.sloty[slot].gui.P_status.Color := clAqua;
        uLI.sloty[slot].gui.P_status.Caption := '-';
-       uLI.sloty[slot].gui.P_status.Hint := 'Pøišel poadavek na autorizaci LOKO, autorizuji...';
+       uLI.sloty[slot].gui.P_status.Hint := 'PÅ™iÅ¡el poÅ¾adavek na autorizaci LOKO, autorizuji...';
        uLI.sloty[slot].sender := AContext;
 
        TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]), TCPClient.SlotToAuth(slot, parsed[0] = 'LOKO-RUC'));

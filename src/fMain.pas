@@ -1,4 +1,4 @@
-unit fMain;
+ï»¿unit fMain;
 
 {
   Unit hlavniho okynka, tady se resi predevsim interakce s GUI.
@@ -255,7 +255,7 @@ begin
  except
    on E:Exception do
     begin
-     Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+     Application.MessageBox(PChar('NepodaÅ™ilo se otevÅ™Ã­t COM port '+port+'.'+#13#10+E.Message), 'VarovÃ¡nÃ­', MB_OK OR MB_ICONWARNING);
      // okno pripojeni k COM portu se zobrazi automaticky - v tom ComAfterClose
     end;
  end;

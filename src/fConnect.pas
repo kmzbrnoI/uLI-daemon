@@ -1,4 +1,4 @@
-unit fConnect;
+ï»¿unit fConnect;
 
 interface
 
@@ -57,7 +57,7 @@ begin
    F_Main.ShowChild(F_Slots);
  except
    on E:Exception do
-     Application.MessageBox(PChar('Nepodaøilo se otevøít COM port '+comPort+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+     Application.MessageBox(PChar('NepodaÅ™ilo se otevÅ™Ã­t COM port '+comPort+'.'+#13#10+E.Message), 'VarovÃ¡nÃ­', MB_OK OR MB_ICONWARNING);
  end;
 
  Self.B_Connect.Enabled := true;
