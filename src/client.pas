@@ -584,7 +584,8 @@ begin
    end else if (parsed[3] = 'RESP') then begin
      if (parsed[4] = 'ok') then
       begin
-       if (parsed.Count > 4) then uLI.sloty[slot].gui.L_Speed.Caption := parsed[5] + ' km/h';
+       if (parsed.Count > 6) then
+         uLI.sloty[slot].gui.L_Speed.Caption := parsed[6] + ' km/h';
        uLI.sloty[slot].gui.P_status.Color := clLime;
        uLI.sloty[slot].gui.P_status.Caption := 'OK';
       end else begin

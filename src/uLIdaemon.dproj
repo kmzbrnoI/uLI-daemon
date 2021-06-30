@@ -98,7 +98,7 @@
 						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
 						<VersionInfo Name="MajorVer">1</VersionInfo>
 						<VersionInfo Name="MinorVer">2</VersionInfo>
-						<VersionInfo Name="Release">2</VersionInfo>
+						<VersionInfo Name="Release">3</VersionInfo>
 						<VersionInfo Name="Build">0</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
@@ -110,15 +110,16 @@
 					</VersionInfo>
 					<VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName"/>
-						<VersionInfoKeys Name="FileDescription">Propojení hJOPserveru a uLI-master</VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">1.2.2.0</VersionInfoKeys>
-						<VersionInfoKeys Name="InternalName">uLI-daemon</VersionInfoKeys>
-						<VersionInfoKeys Name="LegalCopyright">Jan Horáček</VersionInfoKeys>
-						<VersionInfoKeys Name="LegalTrademarks">Jan Horáček</VersionInfoKeys>
-						<VersionInfoKeys Name="OriginalFilename">uLI-daemon.exe</VersionInfoKeys>
-						<VersionInfoKeys Name="ProductName">uLI-daemon</VersionInfoKeys>
+						<VersionInfoKeys Name="FileDescription">uLIdaemon</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">1.2.3.0</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName">uLIdaemon</VersionInfoKeys>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName">uLIdaemon</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
+						<VersionInfoKeys Name="ProgramID">com.embarcadero.uLIdaemon</VersionInfoKeys>
 					</VersionInfoKeys>
 					<Excluded_Packages>
 						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
