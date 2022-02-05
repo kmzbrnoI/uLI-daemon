@@ -36,7 +36,7 @@ type
     cbSize: DWORD;
     ClassGuid: TGUID;
     DevInst: DWORD; // DEVINST handle
-    Reserved: LongWord;
+    Reserved: ULONG_PTR;
   end;
 
   TSP_DevInfo_Data = SP_DEVINFO_DATA;
