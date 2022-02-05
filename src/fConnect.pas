@@ -37,73 +37,79 @@ implementation
 uses comDiscovery, GlobalConfig, tUltimateLI, fMain, fSlots;
 
 procedure TF_Connect.B_ConnectClick(Sender: TObject);
-var comPort:string;
+var
+  comPort: string;
 begin
- if (Self.LB_Ports.ItemIndex < 0) then
+  if (Self.LB_Ports.ItemIndex < 0) then
   begin
-   Application.MessageBox('Vyberte COM port!', 'Vyber COM port', MB_OK OR MB_ICONWARNING);
-   Exit();
+    Application.MessageBox('Vyberte COM port!', 'Vyber COM port',
+      MB_OK OR MB_ICONWARNING);
+    Exit();
   end;
 
- comPort := Self.LB_Ports.Items[Self.LB_Ports.ItemIndex];
- if (Self.CHB_Remember.Checked) then
-   GlobConfig.port.port := comPort
- else
-   GlobConfig.port.port := '';
+  comPort := Self.LB_Ports.Items[Self.LB_Ports.ItemIndex];
+  if (Self.CHB_Remember.Checked) then
+    GlobConfig.port.port := comPort
+  else
+    GlobConfig.port.port := '';
 
- try
-   Self.B_Connect.Enabled := false;
-   uLI.Open(comPort);
-   F_Main.ShowChild(F_Slots);
- except
-   on E:Exception do
-     Application.MessageBox(PChar('Nepodařilo se otevřít COM port '+comPort+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
- end;
+  try
+    Self.B_Connect.Enabled := false;
+    uLI.Open(comPort);
+    F_Main.ShowChild(F_Slots);
+  except
+    on E: Exception do
+      Application.MessageBox(PChar('Nepodařilo se otevřít COM port ' + comPort +
+        '.' + #13#10 + E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+  end;
 
- Self.B_Connect.Enabled := true;
+  Self.B_Connect.Enabled := true;
 end;
 
 procedure TF_Connect.B_UpdateClick(Sender: TObject);
 begin
- Self.UpdateList();
+  Self.UpdateList();
 end;
 
 procedure TF_Connect.FormResize(Sender: TObject);
 begin
- // vycentrovat GB_Connect
- Self.GB_Connect.Left := (Self.ClientWidth div 2) - (Self.GB_Connect.Width div 2);
- Self.GB_Connect.Top  := (Self.ClientHeight div 2) - (Self.GB_Connect.Height div 2);
+  // vycentrovat GB_Connect
+  Self.GB_Connect.Left := (Self.ClientWidth div 2) -
+    (Self.GB_Connect.Width div 2);
+  Self.GB_Connect.Top := (Self.ClientHeight div 2) -
+    (Self.GB_Connect.Height div 2);
 end;
 
 procedure TF_Connect.FormShow(Sender: TObject);
 begin
- Self.UpdateList();
- Self.CHB_Remember.Checked := false;  // TODO settings
+  Self.UpdateList();
+  Self.CHB_Remember.Checked := false; // TODO settings
 end;
 
 procedure TF_Connect.UpdateList();
-var portsList:TList<Integer>;
-    num:Integer;
+var
+  portsList: TList<Integer>;
+  num: Integer;
 begin
- try
-   Self.B_Update.Enabled := false;
-   portsList := TList<Integer>.Create();
-   Self.LB_Ports.Clear();
+  try
+    Self.B_Update.Enabled := false;
+    portsList := TList<Integer>.Create();
+    Self.LB_Ports.Clear();
 
-   EnumuLIDevices(ULI_DEVICE_DESCRIPTION, portsList);
+    EnumuLIDevices(ULI_DEVICE_DESCRIPTION, portsList);
 
-   for num in portsList do
-     Self.LB_Ports.Items.Add('COM'+IntToStr(num));
+    for num in portsList do
+      Self.LB_Ports.Items.Add('COM' + IntToStr(num));
 
-   if (Self.LB_Ports.Count = 1) then
-    Self.LB_Ports.ItemIndex := 0
-   else
-    Self.LB_Ports.ItemIndex := -1;
+    if (Self.LB_Ports.Count = 1) then
+      Self.LB_Ports.ItemIndex := 0
+    else
+      Self.LB_Ports.ItemIndex := -1;
 
-   portsList.Clear();
- finally
-   Self.B_Update.Enabled := true;
- end;
+    portsList.Clear();
+  finally
+    Self.B_Update.Enabled := true;
+  end;
 end;
 
-end.//unit
+end.// unit

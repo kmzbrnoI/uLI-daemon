@@ -1,7 +1,7 @@
 unit ORList;
 
 // TORDb shromazduje vsechny oblasti rizeni
-//  ostatni casti programu se ho pak muzou na ORs ptat
+// ostatni casti programu se ho pak muzou na ORs ptat
 
 interface
 
@@ -9,8 +9,8 @@ uses SysUtils, StrUtils, Classes, Generics.Collections;
 
 type
   TORDb = class
-   private
-   public
+  private
+  public
 
     db: TDictionary<string, string>;
     db_reverse: TDictionary<string, string>;
@@ -18,74 +18,77 @@ type
     constructor Create();
     destructor Destroy(); override;
 
-    procedure Parse(data:string);
+    procedure Parse(data: string);
 
-  end;//class
+  end; // class
 
 var
-  ORDb : TORDb;
+  ORDb: TORDb;
 
 implementation
 
 uses tUltimateLIConst;
 
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
 constructor TORDb.Create();
 begin
- inherited;
- Self.db := TDictionary<string, string>.Create();
- Self.db_reverse := TDictionary<string, string>.Create();
-end;//ctor
+  inherited;
+  Self.db := TDictionary<string, string>.Create();
+  Self.db_reverse := TDictionary<string, string>.Create();
+end; // ctor
 
 destructor TORDb.Destroy();
 begin
- Self.db.Free();
- Self.db_reverse.Clear();
- inherited;
-end;//dtor
+  Self.db.Free();
+  Self.db_reverse.Clear();
+  inherited;
+end; // dtor
 
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
-procedure TORDb.Parse(data:string);
-var i:Integer;
-    list1, list2:TStrings;
+procedure TORDb.Parse(data: string);
+var
+  i: Integer;
+  list1, list2: TStrings;
 begin
- try
-   list1 := TStringList.Create();
-   list2 := TStringList.Create();
+  try
+    list1 := TStringList.Create();
+    list2 := TStringList.Create();
 
-   ExtractStringsEx([']'], ['['], data, list1);
+    ExtractStringsEx([']'], ['['], data, list1);
 
-   Self.db.Clear();
-   Self.db_reverse.Clear();
+    Self.db.Clear();
+    Self.db_reverse.Clear();
 
-   for i := 0 to list1.Count-1 do
+    for i := 0 to list1.Count - 1 do
     begin
-     list2.Clear();
-     ExtractStringsEx([','], [], list1[i], list2);
+      list2.Clear();
+      ExtractStringsEx([','], [], list1[i], list2);
 
-     try
-       Self.db.Add(list2[0], list2[1]);
-       Self.db_reverse.Add(list2[1], list2[0]);
-     except
+      try
+        Self.db.Add(list2[0], list2[1]);
+        Self.db_reverse.Add(list2[1], list2[0]);
+      except
 
-     end;
+      end;
     end;
 
-   list1.Free();
-   list2.Free();
- except
+    list1.Free();
+    list2.Free();
+  except
 
- end;
+  end;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
 initialization
-  ORDb := TORDb.Create();
+
+ORDb := TORDb.Create();
 
 finalization
-  FreeAndNil(ORDb);
 
-end.//unit
+FreeAndNil(ORDb);
+
+end.// unit

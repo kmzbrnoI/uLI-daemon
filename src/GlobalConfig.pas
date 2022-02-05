@@ -10,93 +10,97 @@ uses IniFiles, SysUtils, Types, Generics.Collections, Classes;
 
 type
   TPortConfigData = record
-    port:string;
+    port: string;
   end;
 
   TGlobConfigData = record
-    frmPos:TPoint;
-    frmSize:TPoint;
+    frmPos: TPoint;
+    frmSize: TPoint;
   end;
 
   TGlobConfig = class
-    public const
-      _DEFAULT_FN = 'config_uLI-daemon.ini';
+  public const
+    _DEFAULT_FN = 'config_uLI-daemon.ini';
 
-    private
-      filename:string;
+  private
+    filename: string;
 
-    public
+  public
 
-      data:TGlobConfigData;
-      port:TPortConfigData;
+    data: TGlobConfigData;
+    port: TPortConfigData;
 
-      procedure LoadFile(const filename:string = _DEFAULT_FN);
-      procedure SaveFile(const filename:string); overload;
-      procedure SaveFile(); overload;
+    procedure LoadFile(const filename: string = _DEFAULT_FN);
+    procedure SaveFile(const filename: string); overload;
+    procedure SaveFile(); overload;
 
-      property fn:string read filename;
+    property fn: string read filename;
   end;
 
 var
-  GlobConfig:TGlobConfig;
+  GlobConfig: TGlobConfig;
 
 implementation
 
 uses fMain;
 
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
-procedure TGlobConfig.LoadFile(const filename:string = _DEFAULT_FN);
-var ini:TMemIniFile;
+procedure TGlobConfig.LoadFile(const filename: string = _DEFAULT_FN);
+var
+  ini: TMemIniFile;
 begin
- try
-   ini := TMemIniFile.Create(filename, TEncoding.UTF8);
- except
-   Exit();
- end;
+  try
+    ini := TMemIniFile.Create(filename, TEncoding.UTF8);
+  except
+    Exit();
+  end;
 
- Self.filename := filename;
+  Self.filename := filename;
 
- Self.data.frmPos.X := ini.ReadInteger('F_Main', 'posX', 100);
- Self.data.frmPos.Y := ini.ReadInteger('F_Main', 'posY', 100);
+  Self.data.frmPos.X := ini.ReadInteger('F_Main', 'posX', 100);
+  Self.data.frmPos.Y := ini.ReadInteger('F_Main', 'posY', 100);
 
- Self.data.frmSize.X := ini.ReadInteger('F_Main', 'sizeX', 500);
- Self.data.frmSize.Y := ini.ReadInteger('F_Main', 'sizeY', 300);
+  Self.data.frmSize.X := ini.ReadInteger('F_Main', 'sizeX', 500);
+  Self.data.frmSize.Y := ini.ReadInteger('F_Main', 'sizeY', 300);
 
- Self.port.port := ini.ReadString('COM', 'port', '');
+  Self.port.port := ini.ReadString('COM', 'port', '');
 end;
 
-procedure TGlobConfig.SaveFile(const filename:string);
-var ini:TMemIniFile;
+procedure TGlobConfig.SaveFile(const filename: string);
+var
+  ini: TMemIniFile;
 begin
- try
-   ini := TMemIniFile.Create(filename, TEncoding.UTF8);
- except
-   Exit();
- end;
+  try
+    ini := TMemIniFile.Create(filename, TEncoding.UTF8);
+  except
+    Exit();
+  end;
 
- ini.WriteInteger('F_Main', 'posX', Self.data.frmPos.X);
- ini.WriteInteger('F_Main', 'posY', Self.data.frmPos.Y);
+  ini.WriteInteger('F_Main', 'posX', Self.data.frmPos.X);
+  ini.WriteInteger('F_Main', 'posY', Self.data.frmPos.Y);
 
- ini.WriteInteger('F_Main', 'sizeX', Self.data.frmSize.X);
- ini.WriteInteger('F_Main', 'sizeY', Self.data.frmSize.Y);
+  ini.WriteInteger('F_Main', 'sizeX', Self.data.frmSize.X);
+  ini.WriteInteger('F_Main', 'sizeY', Self.data.frmSize.Y);
 
- ini.WriteString('COM', 'port', Self.port.port);
+  ini.WriteString('COM', 'port', Self.port.port);
 
- ini.UpdateFile();
+  ini.UpdateFile();
 end;
 
 procedure TGlobConfig.SaveFile();
 begin
- Self.SaveFile(Self.filename);
+  Self.SaveFile(Self.filename);
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
 initialization
-  GlobConfig := TGlobConfig.Create();
+
+GlobConfig := TGlobConfig.Create();
 
 finalization
-  FreeAndNil(GlobConfig);
 
-end.//unit
+FreeAndNil(GlobConfig);
+
+end.// unit

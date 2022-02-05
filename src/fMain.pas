@@ -28,26 +28,26 @@ type
     procedure A_ErrorsExecute(Sender: TObject);
     procedure A_ResetCounterExecute(Sender: TObject);
   private
-    procedure PuLIOnDblClick(Sender:TObject);
+    procedure PuLIOnDblClick(Sender: TObject);
 
   public
 
-    P_Server : TPanel;
-    P_Client : TPanel;
-    P_ULI    : TPanel;
-    close_app : boolean;
+    P_Server: TPanel;
+    P_Client: TPanel;
+    P_ULI: TPanel;
+    close_app: Boolean;
 
-    activeMDIform : TForm;
+    activeMDIform: TForm;
 
-     procedure OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
-     procedure OnuLIUsartMsgCntChange(Sender:TObject);
+    procedure OnuLILog(Sender: TObject; lvl: TuLILogLevel; msg: string);
+    procedure OnuLIUsartMsgCntChange(Sender: TObject);
 
-     procedure CreateShapes();
-     procedure LogMessage(msg:string);
-     procedure ClearMessage();
-     procedure UpdateTitle();
-     procedure ShowChild(form:TForm);
-     procedure Open(port:string);
+    procedure CreateShapes();
+    procedure LogMessage(msg: string);
+    procedure ClearMessage();
+    procedure UpdateTitle();
+    procedure ShowChild(form: TForm);
+    procedure Open(port: string);
 
   end;
 
@@ -57,216 +57,232 @@ var
 implementation
 
 uses version, fDebug, tUltimateLI, ActiveX, client, fSlots,
-      GlobalConfig, comDiscovery, fConnect;
+  GlobalConfig, comDiscovery, fConnect;
 
 {$R *.dfm}
 
 procedure TF_Main.A_DebugExecute(Sender: TObject);
 begin
- F_Debug.Show();
+  F_Debug.Show();
 end;
 
 procedure TF_Main.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
- GlobConfig.data.frmPos.X := Self.Left;
- GlobConfig.data.frmPos.Y := Self.Top;
- GlobConfig.data.frmSize.X := Self.Width;
- GlobConfig.data.frmSize.Y := Self.Height;
- GlobConfig.SaveFile();
+  GlobConfig.data.frmPos.X := Self.Left;
+  GlobConfig.data.frmPos.Y := Self.Top;
+  GlobConfig.data.frmSize.X := Self.Width;
+  GlobConfig.data.frmSize.Y := Self.Height;
+  GlobConfig.SaveFile();
 end;
 
 procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
- if (not Self.close_app) then
+  if (not Self.close_app) then
   begin
-   if (TCPClient.status <> TPanelConnectionStatus.closed) then
+    if (TCPClient.status <> TPanelConnectionStatus.closed) then
     begin
-     Self.close_app := true;  // informujeme OnDisconnect, ze ma zavrit okno
-     TCPClient.Disconnect();
-     CanClose := false;       // okno zatim nezavirame, zavre se az pri OnDisconnect
+      Self.close_app := true; // informujeme OnDisconnect, ze ma zavrit okno
+      TCPClient.Disconnect();
+      CanClose := false; // okno zatim nezavirame, zavre se az pri OnDisconnect
     end;
 
-   if (uLI.connected) then
+    if (uLI.connected) then
     begin
-     Self.close_app := true;
-     uLI.Close();
-     CanClose := false;
+      Self.close_app := true;
+      uLI.Close();
+      CanClose := false;
     end;
   end;
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
 begin
- Self.activeMDIform := nil;
+  Self.activeMDIform := nil;
 
- Self.CreateShapes();
+  Self.CreateShapes();
 
- uLI.logLevel := tllNo;
- uLI.OnLog    := Self.OnuLILog;
+  uLI.logLevel := tllNo;
+  uLI.OnLog := Self.OnuLILog;
 
- GlobConfig.LoadFile();
+  GlobConfig.LoadFile();
 
- Self.Width  := GlobConfig.data.frmSize.X;
- Self.Height := GlobConfig.data.frmSize.Y;
+  Self.Width := GlobConfig.data.frmSize.X;
+  Self.Height := GlobConfig.data.frmSize.Y;
 
- if ((GlobConfig.data.frmPos.X >= 0) and (GlobConfig.data.frmPos.Y >= 0) and
-   (GlobConfig.data.frmPos.X+100 < Screen.Width) and (GlobConfig.data.frmPos.Y+100 < Screen.Height)) then
+  if ((GlobConfig.data.frmPos.X >= 0) and (GlobConfig.data.frmPos.Y >= 0) and
+    (GlobConfig.data.frmPos.X + 100 < Screen.Width) and
+    (GlobConfig.data.frmPos.Y + 100 < Screen.Height)) then
   begin
-   Self.Left := GlobConfig.data.frmPos.X;
-   Self.Top := GlobConfig.data.frmPos.Y;
+    Self.Left := GlobConfig.data.frmPos.X;
+    Self.Top := GlobConfig.data.frmPos.Y;
   end;
 end;
 
 procedure TF_Main.FormResize(Sender: TObject);
 begin
- if (Assigned(Self.activeMDIform) and (Assigned(Self.activeMDIform.OnResize))) then Self.activeMDIform.OnResize(Self);
+  if (Assigned(Self.activeMDIform) and (Assigned(Self.activeMDIform.OnResize)))
+  then
+    Self.activeMDIform.OnResize(Self);
 end;
 
 procedure TF_Main.FormShow(Sender: TObject);
 begin
- Self.UpdateTitle();
+  Self.UpdateTitle();
 end;
 
-procedure TF_Main.OnuLILog(Sender:TObject; lvl:TuLILogLevel; msg:string);
+procedure TF_Main.OnuLILog(Sender: TObject; lvl: TuLILogLevel; msg: string);
 begin
- if (Assigned(F_Debug)) then F_Debug.Log('uLI: '+msg);
+  if (Assigned(F_Debug)) then
+    F_Debug.Log('uLI: ' + msg);
 end;
 
-procedure TF_Main.OnuLIUsartMsgCntChange(Sender:TObject);
+procedure TF_Main.OnuLIUsartMsgCntChange(Sender: TObject);
 begin
- if (Self.SB_Main.Panels.Count <> 3) then Exit();
- Self.SB_Main.Panels[1].Text := IntToStr(uLI.usartMsgTimeoutCnt) + '/' + IntToStr(uLI.usartMsgTotalCnt);
- if (uLI.usartMsgTotalCnt > 0) then
-   Self.SB_Main.Panels[1].Text := Self.SB_Main.Panels[1].Text + Format(': %4.1f', [ uLI.usartMsgTimeoutCnt*100/uLI.usartMsgTotalCnt ]) + ' %';
+  if (Self.SB_Main.Panels.Count <> 3) then
+    Exit();
+  Self.SB_Main.Panels[1].Text := IntToStr(uLI.usartMsgTimeoutCnt) + '/' +
+    IntToStr(uLI.usartMsgTotalCnt);
+  if (uLI.usartMsgTotalCnt > 0) then
+    Self.SB_Main.Panels[1].Text := Self.SB_Main.Panels[1].Text +
+      Format(': %4.1f', [uLI.usartMsgTimeoutCnt * 100 /
+      uLI.usartMsgTotalCnt]) + ' %';
 end;
 
 procedure TF_Main.SB_MainDblClick(Sender: TObject);
 begin
- Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := '';
- Self.SB_Main.Hint := '';
+  Self.SB_Main.Panels[Self.SB_Main.Panels.Count - 1].Text := '';
+  Self.SB_Main.Hint := '';
 end;
 
 procedure TF_Main.CreateShapes();
 begin
- P_Server := TPanel.Create(SB_Main);
- with (P_Server) do
+  P_Server := TPanel.Create(SB_Main);
+  with (P_Server) do
   begin
-   Parent := SB_Main;
-   ParentBackground := false;
-   Left := 1;
-   Top  := 2;
-   Height := 16;
-   Width := 30;
-   ShowHint := true;
-   BevelOuter := bvNone;
-   Hint := 'Bridge server: vypnut';
-   Color := clRed;
-   Caption := '';
+    Parent := SB_Main;
+    ParentBackground := false;
+    Left := 1;
+    Top := 2;
+    Height := 16;
+    Width := 30;
+    ShowHint := true;
+    BevelOuter := bvNone;
+    Hint := 'Bridge server: vypnut';
+    Color := clRed;
+    Caption := '';
   end;
 
- P_ULI := TPanel.Create(SB_Main);
- with (P_ULI) do
+  P_ULI := TPanel.Create(SB_Main);
+  with (P_ULI) do
   begin
-   Parent := SB_Main;
-   ParentBackground := false;
-   Left := 32;
-   Top  := 2;
-   Height := 16;
-   Width := 30;
-   ShowHint := true;
-   BevelOuter := bvNone;
-   Hint := 'Odpojeno od uLI-master';
-   Color := clRed;
-   Caption := '';
-   OnDblClick := Self.PuLIOnDblClick;
+    Parent := SB_Main;
+    ParentBackground := false;
+    Left := 32;
+    Top := 2;
+    Height := 16;
+    Width := 30;
+    ShowHint := true;
+    BevelOuter := bvNone;
+    Hint := 'Odpojeno od uLI-master';
+    Color := clRed;
+    Caption := '';
+    OnDblClick := Self.PuLIOnDblClick;
   end;
 
- P_Client := TPanel.Create(SB_Main);
- with (P_Client) do
+  P_Client := TPanel.Create(SB_Main);
+  with (P_Client) do
   begin
-   Parent := SB_Main;
-   ParentBackground := false;
-   Left := 63;
-   Top  := 2;
-   Height := 16;
-   Width := 30;
-   ShowHint := true;
-   BevelOuter := bvNone;
-   Hint := 'Odpojeno od hJOP serveru';
-   Color := clRed;
-   Caption := '';
+    Parent := SB_Main;
+    ParentBackground := false;
+    Left := 63;
+    Top := 2;
+    Height := 16;
+    Width := 30;
+    ShowHint := true;
+    BevelOuter := bvNone;
+    Hint := 'Odpojeno od hJOP serveru';
+    Color := clRed;
+    Caption := '';
   end;
 end;
 
-procedure TF_Main.LogMessage(msg:string);
+procedure TF_Main.LogMessage(msg: string);
 begin
- Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := msg;
- Self.SB_Main.Hint := msg;
+  Self.SB_Main.Panels[Self.SB_Main.Panels.Count - 1].Text := msg;
+  Self.SB_Main.Hint := msg;
 end;
 
 procedure TF_Main.A_ErrorsExecute(Sender: TObject);
-var sp:TStatusPanel;
+var
+  sp: TStatusPanel;
 begin
- if (Self.SB_Main.Panels.Count = 2) then begin
-   // add panel
-   sp := Self.SB_Main.Panels.Insert(1);
-   sp.Width := 100;
-   Self.OnuLIUsartMsgCntChange(Self);
-   uLI.OnUsartMsgCntChange := Self.OnuLIUsartMsgCntChange;
- end else begin
-   // remove panel
-   uLI.OnUsartMsgCntChange := nil;
-   Self.SB_Main.Panels[1].Free();
- end;
+  if (Self.SB_Main.Panels.Count = 2) then
+  begin
+    // add panel
+    sp := Self.SB_Main.Panels.Insert(1);
+    sp.Width := 100;
+    Self.OnuLIUsartMsgCntChange(Self);
+    uLI.OnUsartMsgCntChange := Self.OnuLIUsartMsgCntChange;
+  end
+  else
+  begin
+    // remove panel
+    uLI.OnUsartMsgCntChange := nil;
+    Self.SB_Main.Panels[1].Free();
+  end;
 end;
 
 procedure TF_Main.A_ResetCounterExecute(Sender: TObject);
 begin
- uLI.ResetUsartCounters();
+  uLI.ResetUsartCounters();
 end;
 
 procedure TF_Main.ClearMessage();
 begin
- Self.SB_Main.Panels[Self.SB_Main.Panels.Count-1].Text := '';
- Self.SB_Main.Hint := '';
+  Self.SB_Main.Panels[Self.SB_Main.Panels.Count - 1].Text := '';
+  Self.SB_Main.Hint := '';
 end;
 
 procedure TF_Main.UpdateTitle();
 begin
- Self.Caption := 'uLI-daemon v'+VersionStr(Application.ExeName)+' (build '+LastBuildDate()+')';
+  Self.Caption := 'uLI-daemon v' + VersionStr(Application.ExeName) + ' (build '
+    + LastBuildDate() + ')';
 
- if (TCPClient.user <> '') then
-   Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';
+  if (TCPClient.user <> '') then
+    Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';
 end;
 
-procedure TF_Main.ShowChild(form:TForm);
+procedure TF_Main.ShowChild(form: TForm);
 begin
- if (Assigned(Self.activeMDIform)) then Self.activeMDIform.Close();
- form.Parent := Self;
- form.Show();
- Self.activeMDIform := form;
+  if (Assigned(Self.activeMDIform)) then
+    Self.activeMDIform.Close();
+  form.Parent := Self;
+  form.Show();
+  Self.activeMDIform := form;
 end;
 
-procedure TF_Main.Open(port:string);
+procedure TF_Main.Open(port: string);
 begin
- try
-   uLI.Open(port);
-   Self.ShowChild(F_Slots);
- except
-   on E:Exception do
+  try
+    uLI.Open(port);
+    Self.ShowChild(F_Slots);
+  except
+    on E: Exception do
     begin
-     Application.MessageBox(PChar('Nepodařilo se otevřít COM port '+port+'.'+#13#10+E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
-     // okno pripojeni k COM portu se zobrazi automaticky - v tom ComAfterClose
+      Application.MessageBox(PChar('Nepodařilo se otevřít COM port ' + port +
+        '.' + #13#10 + E.Message), 'Varování', MB_OK OR MB_ICONWARNING);
+      // okno pripojeni k COM portu se zobrazi automaticky - v tom ComAfterClose
     end;
- end;
-end;
-
-procedure TF_Main.PuLIOnDblClick(Sender:TObject);
-begin
- if (uLI.connected) then
-  begin
-   Application.MessageBox(PChar('uLI-master verze HW:'+uLI.version.hw+', SW:'+uLI.version.sw), 'Info', MB_OK OR MB_ICONINFORMATION);
   end;
 end;
 
-end.//unit
+procedure TF_Main.PuLIOnDblClick(Sender: TObject);
+begin
+  if (uLI.connected) then
+  begin
+    Application.MessageBox(PChar('uLI-master verze HW:' + uLI.version.hw +
+      ', SW:' + uLI.version.sw), 'Info', MB_OK OR MB_ICONINFORMATION);
+  end;
+end;
+
+end.// unit

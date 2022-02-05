@@ -26,7 +26,7 @@ uses tUltimateLI;
 
 procedure TF_slots.FormResize(Sender: TObject);
 begin
- uLI.RepaintSlots(self);
+  uLI.RepaintSlots(self);
 end;
 
 end.
