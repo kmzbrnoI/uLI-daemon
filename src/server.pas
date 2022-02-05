@@ -184,9 +184,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.Stop();
-var
-  iA: Integer;
-  Context: TIdContext;
 begin
   if (not Self.tcpServer.Active) then
     Exit();
@@ -197,9 +194,9 @@ begin
 
   with Self.tcpServer.Contexts.LockList do
     try
-      for iA := Count - 1 downto 0 do
+      for var iA := Count - 1 downto 0 do
       begin
-        Context := Items[iA];
+        var Context: TIdContext := Items[iA];
         if Context = nil then
           Continue;
         Context.Connection.IOHandler.WriteBufferClear;
@@ -225,7 +222,7 @@ procedure TTCPServer.OnTcpServerConnect(AContext: TIdContext);
 begin
   Self.tcpServer.Contexts.LockList();
   try
-    AContext.Connection.IOHandler.DefStringEncoding := enUTF8;
+    AContext.Connection.IOHandler.DefStringEncoding := IndyTextEncoding_UTF8;
     F_Debug.Log('Bridge: client connected');
   finally
     Self.tcpServer.Contexts.UnlockList();
@@ -284,10 +281,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPServer.Parse(AContext: TIdContext);
-var
-  slot, i: Integer;
-  tmp: string;
-  data: TStrings;
 begin
   if (parsed[0] = 'LOGIN') then
   begin
@@ -327,7 +320,7 @@ begin
       Exit();
     end;
 
-    slot := StrToInt(parsed[1]);
+    var slot := StrToInt(parsed[1]);
     if ((slot < 0) or (slot > uLI._SLOTS_CNT)) then
     begin
       Self.SendLn(AContext, 'LOKO;err;4;Slot mimo povoleny rozsah slotu');
@@ -345,27 +338,30 @@ begin
       Exit();
     end;
 
-    data := TStringList.Create();
-    for i := 2 to parsed.Count - 1 do
-    begin
-      data.Clear();
-      ExtractStringsEx([';'], [#13, #10], parsed[i], data);
+    var data: TStrings := TStringList.Create();
+    try
+      for var i := 2 to parsed.Count - 1 do
+      begin
+        data.Clear();
+        ExtractStringsEx([';'], [#13, #10], parsed[i], data);
 
-      try
-        uLI.sloty[slot].gui.P_status.Color := clAqua;
-        uLI.sloty[slot].gui.P_status.Caption := '-';
-        uLI.sloty[slot].gui.P_status.Hint :=
-          'Přišel požadavek na autorizaci LOKO, autorizuji...';
-        uLI.sloty[slot].sender := AContext;
+        try
+          uLI.sloty[slot].gui.P_status.Color := clAqua;
+          uLI.sloty[slot].gui.P_status.Caption := '-';
+          uLI.sloty[slot].gui.P_status.Hint :=
+            'Přišel požadavek na autorizaci LOKO, autorizuji...';
+          uLI.sloty[slot].sender := AContext;
 
-        TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]),
-          TCPClient.SlotToAuth(slot, parsed[0] = 'LOKO-RUC'));
-        TCPClient.SendLn('-;LOK;' + data[0] + ';PLEASE;' + data[1]);
-      except
+          TCPClient.lokToSlotMap.AddOrSetValue(StrToInt(data[0]),
+            TCPClient.SlotToAuth(slot, parsed[0] = 'LOKO-RUC'));
+          TCPClient.SendLn('-;LOK;' + data[0] + ';PLEASE;' + data[1]);
+        except
 
+        end;
       end;
+    finally
+      data.Free();
     end;
-    data.Free();
 
   end
   else if (parsed[0] = 'SLOTS?') then
@@ -378,8 +374,8 @@ begin
     end
     else
     begin
-      tmp := '';
-      for i := 1 to uLI._SLOTS_CNT do
+      var tmp := '';
+      for var i := 1 to uLI._SLOTS_CNT do
       begin
         if (uLI.sloty[i].isMaus) then
         begin
@@ -451,7 +447,6 @@ end;
 procedure TTCPServer.BroadcastSlots();
 var
   str: string;
-  i: Integer;
 begin
   if (not Self.tcpServer.Active) then
     Exit();
@@ -460,7 +455,7 @@ begin
 
   if ((TCPClient.authorised) and (uLI.Connected) and (uLI.status.sense)) then
   begin
-    for i := 1 to uLI._SLOTS_CNT do
+    for var i := 1 to uLI._SLOTS_CNT do
     begin
       if (uLI.sloty[i].isMaus) then
       begin

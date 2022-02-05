@@ -219,11 +219,9 @@ begin
 end;
 
 function TSlot.GetUkradeno(): boolean;
-var
-  HV: THV;
 begin
   Result := false;
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
     Result := Result OR HV.ukradeno;
 end;
 
@@ -239,15 +237,13 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TSlot.SetRychlostSmer(stupne: Word; smer: Integer);
-var
-  HV: THV;
 begin
   if (Self.HVs.Count > 1) then
     Self.imagSmer := smer
   else if (Self.HVs.Count = 1) then
     Self.HVs[0].smer := smer;
 
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
   begin
     HV.rychlost_stupne := stupne;
     TCPClient.SendLn('-;LOK;' + IntToStr(HV.Adresa) + ';SPD-S;' +
@@ -256,10 +252,8 @@ begin
 end;
 
 procedure TSlot.STOPloko();
-var
-  HV: THV;
 begin
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
   begin
     HV.rychlost_stupne := 0;
     TCPClient.SendLn('-;LOK;' + IntToStr(HV.Adresa) + ';STOP');
@@ -268,17 +262,15 @@ end;
 
 procedure TSlot.SetFunctions(start, fin: Integer; new: TFunkce);
 var
-  HV: THV;
-  i: Integer;
   momTurnOff: TFunkce;
 begin
-  for i := 0 to _MAX_FUNC do
+  for var i := 0 to _MAX_FUNC do
     momTurnOff[i] := ((i >= start) and (i <= fin));
   // set temporary true everywhere
 
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
   begin
-    for i := start to fin do
+    for var i := start to fin do
     begin
       if (new[i] <> Self.mausFunkce[i]) then
       begin
@@ -301,10 +293,10 @@ begin
       '-' + IntToStr(fin) + ';' + HV.SerializeFunctions(start, fin));
   end;
 
-  for i := start to fin do
+  for var i := start to fin do
     Self.mausFunkce[i] := new[i];
 
-  for i := 0 to _MAX_FUNC do
+  for var i := 0 to _MAX_FUNC do
     if (momTurnOff[i]) then
       Self.q_mom_release.Enqueue(Self.CreateMomRelease(i));
   // enqueue for release
@@ -331,11 +323,9 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 function TSlot.GetHVIndex(lokoAddr: Word): Integer;
-var
-  i: Integer;
 begin
   Result := -1;
-  for i := 0 to Self.HVs.Count - 1 do
+  for var i := 0 to Self.HVs.Count - 1 do
     if (Self.HVs[i].Adresa = lokoAddr) then
       Exit(i);
 end;
@@ -544,15 +534,13 @@ end;
 
 // Aktualizace textu popisujici lokomotivy.
 procedure TSlot.UpdateLokString();
-var
-  i: Integer;
 begin
   if (Self.HVs.Count = 0) then
     Self.gui.L_Addrs.Caption := '-'
   else
   begin
     Self.gui.L_Addrs.Caption := '';
-    for i := 0 to Self.HVs.Count - 2 do
+    for var i := 0 to Self.HVs.Count - 2 do
       Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption + Self.HVs[i].Nazev +
         ' (' + IntToStr(Self.HVs[i].Adresa) + '), ';
     Self.gui.L_Addrs.Caption := Self.gui.L_Addrs.Caption +
@@ -572,8 +560,6 @@ end;
 
 // Prevzit / odhlasit lokomotivu z rucniho rizeni.
 procedure TSlot.OnCHBTotalClick(Sender: TObject);
-var
-  HV: THV;
 begin
   if (Self.updating) then
     Exit();
@@ -583,15 +569,13 @@ begin
   Self.gui.P_status.Hint :=
     'Odeslán požadavek na totální řízení, čekám na odpověď...';
 
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
     TCPClient.SendLn('-;LOK;' + IntToStr(HV.Adresa) + ';TOTAL;' +
       IntToStr(Integer(TCheckBox(Sender).Checked)));
 end;
 
 // Prevzit ukradenou lokomotivu.
 procedure TSlot.ONBTakeClick(Sender: TObject);
-var
-  HV: THV;
 begin
   Self.gui.B_Take.Enabled := false;
   Self.gui.P_status.Color := clAqua;
@@ -599,7 +583,7 @@ begin
   Self.gui.P_status.Hint :=
     'Odeslán požadavek na totální řízení, čekám na odpověď...';
 
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
     if (HV.ukradeno) then
       TCPClient.LokoPlease(HV.Adresa, '');
 end;
@@ -655,10 +639,8 @@ begin
 end;
 
 procedure TSlot.MomRelease(mr: TMomRelease);
-var
-  HV: THV;
 begin
-  for HV in Self.HVs do
+  for var HV in Self.HVs do
   begin
     if (HV.funkce[mr.f]) then
     begin

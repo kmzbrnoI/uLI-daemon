@@ -89,7 +89,6 @@ end;
 procedure TF_Connect.UpdateList();
 var
   portsList: TList<Integer>;
-  num: Integer;
 begin
   try
     Self.B_Update.Enabled := false;
@@ -98,7 +97,7 @@ begin
 
     EnumuLIDevices(ULI_DEVICE_DESCRIPTION, portsList);
 
-    for num in portsList do
+    for var num in portsList do
       Self.LB_Ports.Items.Add('COM' + IntToStr(num));
 
     if (Self.LB_Ports.Count = 1) then

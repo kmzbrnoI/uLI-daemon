@@ -92,9 +92,6 @@ end; // ctor
 procedure THV.ParseData(data: string);
 var
   str, str2, str3: TStrings;
-  i: Integer;
-  pomCv: THVPomCV;
-  tmp: string;
 begin
   // format zapisu: nazev|majitel|oznaceni|poznamka|adresa|trida|souprava|stanovisteA|funkce|rychlost_stupne|rychlost_kmph|smer|or_id|{[{cv1take|cv1take-value}][{...}]...}|{[{cv1release|cv1release-value}][{...}]...}|
   // souprava je bud cislo soupravy, nebo znak '-'
@@ -115,7 +112,7 @@ begin
     Self.Souprava := str[6];
     Self.StanovisteA := THVStanoviste(StrToInt(str[7]));
 
-    for i := 0 to _MAX_FUNC do
+    for var i := 0 to _MAX_FUNC do
     begin
       if (i < Length(str[8])) then
         if (str[8][i + 1] = '1') then
@@ -133,9 +130,10 @@ begin
     begin
       // pom-take
       ExtractStringsEx([']'], ['['], str[13], str2);
-      for tmp in str2 do
+      for var tmp in str2 do
       begin
         ExtractStringsEx(['|'], [], tmp, str3);
+        var pomCv: THVPomCV;
         pomCv.cv := StrToInt(str3[0]);
         pomCv.cv := StrToInt(str3[1]);
         Self.POMtake.Add(pomCv);
@@ -143,9 +141,10 @@ begin
 
       // pom-release
       ExtractStringsEx([']'], ['['], str[14], str2);
-      for tmp in str2 do
+      for var tmp in str2 do
       begin
         ExtractStringsEx(['|'], [], tmp, str3);
+        var pomCv: THVPomCV;
         pomCv.cv := StrToInt(str3[0]);
         pomCv.cv := StrToInt(str3[1]);
         Self.POMrelease.Add(pomCv);
@@ -157,7 +156,7 @@ begin
     begin
       str2.Clear();
       ExtractStringsEx([';'], [], str[15], str2);
-      for i := 0 to _MAX_FUNC do
+      for var i := 0 to _MAX_FUNC do
         if (i < str2.Count) then
           Self.funcVyznam[i] := str2[i]
         else
@@ -165,14 +164,14 @@ begin
     end
     else
     begin
-      for i := 0 to _MAX_FUNC do
+      for var i := 0 to _MAX_FUNC do
         Self.funcVyznam[i] := '';
     end;
 
     // typy funkci
     if (str.Count > 16) then
     begin
-      for i := 0 to _MAX_FUNC do
+      for var i := 0 to _MAX_FUNC do
         if (i < Length(str[16])) then
           Self.funcType[i] := CharToHVFuncType(str[16][i + 1])
         else
@@ -180,7 +179,7 @@ begin
     end
     else
     begin
-      for i := 0 to _MAX_FUNC do
+      for var i := 0 to _MAX_FUNC do
         Self.funcType[i] := THVFuncType.permanent;
     end;
   except
@@ -195,8 +194,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure THV.DefaultData();
-var
-  i: Integer;
 begin
   Self.Nazev := '';
   Self.Majitel := '';
@@ -209,18 +206,16 @@ begin
   Self.POMtake.Clear();
   Self.POMrelease.Clear();
 
-  for i := 0 to _MAX_FUNC do
+  for var i := 0 to _MAX_FUNC do
     Self.funkce[i] := false;
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
 function THV.SerializeFunctions(start, fin: Integer): string;
-var
-  i: Integer;
 begin
   Result := '';
-  for i := start to fin do
+  for var i := start to fin do
   begin
     case (Self.funkce[i]) of
       false:

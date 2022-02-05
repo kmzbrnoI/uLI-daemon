@@ -187,13 +187,11 @@ var
 
 implementation
 
-uses client, tHnaciVozidlo, fMain, server, fSlots, fConnect;
+uses client, tHnaciVozidlo, fMain, server, fSlots, fConnect, System.Math;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
 constructor TuLI.Create();
-var
-  i: Integer;
 begin
   inherited;
 
@@ -231,19 +229,17 @@ begin
   Self.ffusartMsgTotalCnt := 0;
   Self.ffusartMsgTimeoutCnt := 0;
 
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     Self.sloty[i] := TSlot.Create(i);
 end;
 
 destructor TuLI.Destroy();
-var
-  i: Integer;
 begin
   Self.tKASendTimer.Free();
   Self.tKAReceiveTimer.Free();
   Self.ComPort.Free();
 
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     FreeAndNil(Self.sloty[i]);
 
   inherited;
@@ -304,8 +300,6 @@ begin
 end;
 
 procedure TuLI.ComBeforeClose(Sender: TObject);
-var
-  i: Integer;
 begin
   Self.tKASendTimer.Enabled := false;
   Self.tKAReceiveTimer.Enabled := false;
@@ -313,7 +307,7 @@ begin
   Self.uLIStatus := _DEF_ULI_STATUS;
   Self.uLIVersion := _DEF_ULI_VERSION;
 
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     if (Self.sloty[i].isLoko) then
       Self.sloty[i].ReleaseLoko();
 
@@ -322,13 +316,11 @@ begin
 end;
 
 procedure TuLI.ComAfterClose(Sender: TObject);
-var
-  i: Integer;
 begin
   Self.WriteLog(tllCommands, 'CLOSE OK');
   Self.uLIStatusValid := false;
 
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     Self.sloty[i].mausId := TSlot._MAUS_NULL;
 
   F_Main.P_ULI.Color := clRed;
@@ -409,19 +401,14 @@ end;
 
 procedure TuLI.ComRxChar(Sender: TObject; Count: Integer);
 var
-  ok, parity: boolean;
-  msg_len: Integer;
-  x: Byte;
-  i, tmp: Integer;
   Buf: array [0 .. 255] of Byte;
-  s: string;
 begin
   // check timeout
   Self.CheckFbufInTimeout();
 
-  Self.ComPort.Read(Buf, Count);
+  Self.ComPort.Read(Buf, Min(Count, 256));
 
-  for i := 0 to Count - 1 do
+  for var i := 0 to Count - 1 do
     Fbuf_in.data[Fbuf_in.Count + i] := Buf[i];
   Fbuf_in.Count := Fbuf_in.Count + Count;
   Fbuf_in_timeout := Now + EncodeTime(0, 0, _BUF_IN_TIMEOUT_MS div 1000,
@@ -429,25 +416,25 @@ begin
 
   if (Self.logLevel >= tllDetail) then
   begin
-    s := 'BUF: ';
-    for i := 0 to Fbuf_in.Count - 1 do
+    var s := 'BUF: ';
+    for var i := 0 to Fbuf_in.Count - 1 do
       s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
     WriteLog(tllDetail, s);
   end;
 
-  ok := true;
+  var ok := true;
   while (ok) do
   begin
     if (Fbuf_in.Count >= 2) then
     begin
       // msg_len is length with all bytes (call, header, data, xor)
-      msg_len := (Fbuf_in.data[1] AND $0F) + 3;
+      var msg_len := (Fbuf_in.data[1] AND $0F) + 3;
       if (msg_len <= Fbuf_in.Count) then
       begin
         // check first byte parity
-        x := Fbuf_in.data[0];
-        parity := false;
-        for i := 0 to 7 do
+        var x := Fbuf_in.data[0];
+        var parity := false;
+        for var i := 0 to 7 do
         begin
           if ((x AND 1) = 1) then
             parity := not parity;
@@ -458,13 +445,13 @@ begin
         begin
           // parity ok -> check xor
           x := 0;
-          for i := 1 to msg_len - 2 do
+          for var i := 1 to msg_len - 2 do
             x := x xor Fbuf_in.data[i];
 
           if (x = Fbuf_in.data[msg_len - 1]) then
           begin
             // parse one message
-            tmp := Fbuf_in.Count;
+            var tmp := Fbuf_in.Count;
             Fbuf_in.Count := msg_len;
             Self.ParseComMsg(Fbuf_in);
             Fbuf_in.Count := tmp;
@@ -472,8 +459,8 @@ begin
           else
           begin
             // xor error
-            s := '';
-            for i := 0 to Fbuf_in.Count - 1 do
+            var s := '';
+            for var i := 0 to Fbuf_in.Count - 1 do
               s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
             WriteLog(tllErrors, 'GET: XOR ERROR, removing buffer : ' + s);
           end;
@@ -481,8 +468,8 @@ begin
         else
         begin
           // parity error
-          s := '';
-          for i := 0 to Fbuf_in.Count - 1 do
+          var s := '';
+          for var i := 0 to Fbuf_in.Count - 1 do
             s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
           WriteLog(tllErrors, 'GET: PARITY ERROR, removing buffer : ' + s);
         end;
@@ -490,14 +477,14 @@ begin
         // TODO: send "transfer errors" ???
 
         // remove message from buffer
-        for i := 0 to Fbuf_in.Count - msg_len - 1 do
+        for var i := 0 to Fbuf_in.Count - msg_len - 1 do
           Fbuf_in.data[i] := Fbuf_in.data[i + msg_len];
         Fbuf_in.Count := Fbuf_in.Count - msg_len;
 
         if (Self.logLevel >= tllDetail) then
         begin
-          s := 'BUF: ';
-          for i := 0 to Fbuf_in.Count - 1 do
+          var s := 'BUF: ';
+          for var i := 0 to Fbuf_in.Count - 1 do
             s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
           if (Fbuf_in.Count > 0) then
             WriteLog(tllDetail, s);
@@ -515,22 +502,18 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.ParseComMsg(var msg: TBuffer);
-var
-  target: Byte;
-  s: string;
-  i: Integer;
 begin
   if ((not Self.ignoreKeepAliveLogging) or (msg.Count <> 4) or
     (not CompareMem(@msg.data, @_KEEP_ALIVE, 4))) then
   begin
-    s := '';
-    for i := 0 to msg.Count - 1 do
+    var s := '';
+    for var i := 0 to msg.Count - 1 do
       s := s + IntToHex(msg.data[i], 2) + ' ';
     Self.WriteLog(tllData, 'GET: ' + s);
   end;
 
   try
-    target := (msg.data[0] shr 5) AND 3;
+    var target := (msg.data[0] shr 5) AND 3;
     if (target = 3) then
       Self.ParseDeviceMsg((msg.data[0] AND $1F), msg)
     else if (target = 1) then
@@ -543,13 +526,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.ParseDeviceMsg(deviceAddr: Byte; var msg: TBuffer);
-var
-  tmpSmer: Byte;
-  addr: Word;
-  i: Integer;
-  funkce: TFunkce;
-  maxsp, speed: Integer;
-  emergencyStop: boolean;
 begin
   Self.fusartMsgTotalCnt := Self.fusartMsgTotalCnt + 1;
 
@@ -593,7 +569,7 @@ begin
               Self.WriteLog(tllCommands, 'GET: STOP operations request');
 
               // zastavit hnaci vozidlo
-              i := Self.FindSlot(msg.data[0] AND $1F);
+              var i := Self.FindSlot(msg.data[0] AND $1F);
               if ((i > -1) and (Self.sloty[i].isLoko)) then
                 Self.sloty[i].STOPloko();
 
@@ -638,7 +614,8 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: locomotive set speed');
 
-              addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var maxsp: Integer;
 
               case (msg.data[2]) of
                 $10:
@@ -653,8 +630,8 @@ begin
                 maxsp := 128;
               end;
 
-              emergencyStop := false;
-              speed := 0;
+              var emergencyStop := false;
+              var speed := 0;
               case (maxsp) of
                 14:
                   begin
@@ -714,7 +691,7 @@ begin
               begin
                 // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
 
-                tmpSmer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
+                var tmpSmer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
                 if (emergencyStop) then
                 begin
                   // emergency stop -> uvolnit HV ze slotu
@@ -737,7 +714,7 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F0-F4');
 
-              addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
@@ -749,8 +726,9 @@ begin
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
+                var funkce: TFunkce;
                 funkce[0] := boolean((msg.data[5] shr 4) and $1);
-                for i := 0 to 3 do
+                for var i := 0 to 3 do
                   funkce[i + 1] := boolean((msg.data[5] shr i) and $1);
                 Self.sloty[addr].SetFunctions(0, 4, funkce);
               end;
@@ -760,7 +738,7 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F5-F8');
 
-              addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
@@ -772,7 +750,8 @@ begin
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
-                for i := 0 to 3 do
+                var funkce: TFunkce;
+                for var i := 0 to 3 do
                   funkce[i + 5] := boolean((msg.data[5] shr i) and $1);
                 Self.sloty[addr].SetFunctions(5, 8, funkce);
               end;
@@ -782,7 +761,7 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F9-F12');
 
-              addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
@@ -793,8 +772,9 @@ begin
               end
               else
               begin
-                // lokomotiva je rizena ovladacem -> nastavit funkce
-                for i := 0 to 3 do
+                // lokomotiva je rizena ovladacem -> nastavit funkce\
+                var funkce: TFunkce;
+                for var i := 0 to 3 do
                   funkce[i + 9] := boolean((msg.data[5] shr i) and $1);
                 Self.sloty[addr].SetFunctions(9, 12, funkce);
               end;
@@ -804,7 +784,7 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F13-F20');
 
-              addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
@@ -816,7 +796,8 @@ begin
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
-                for i := 0 to 7 do
+                var funkce: TFunkce;
+                for var i := 0 to 7 do
                   funkce[i + 13] := boolean((msg.data[5] shr i) and $1);
                 Self.sloty[addr].SetFunctions(13, 20, funkce);
               end;
@@ -933,8 +914,6 @@ end;
 procedure TuLI.ParseuLIStatus(var msg: TBuffer);
 var
   new: TuLIStatus;
-  blackout, turnon: boolean;
-  i: Integer;
 begin
   new.transistor := boolean(msg.data[2] and 1);
   new.sense := boolean((msg.data[2] shr 1) and 1);
@@ -947,8 +926,8 @@ begin
   Self.tKAReceiveTimer.Enabled := new.aliveSending;
   Self.KAreceiveTimeout := 0;
 
-  blackout := ((Self.status.sense) and (not new.sense));
-  turnon := ((not Self.status.sense) and (new.sense) and (not new.transistor));
+  var blackout := ((Self.status.sense) and (not new.sense));
+  var turnon := ((not Self.status.sense) and (new.sense) and (not new.transistor));
 
   if ((not Self.status.sense) and (new.sense)) then
     F_Main.ClearMessage();
@@ -970,7 +949,7 @@ begin
   begin
     // vypadek napajeni multiMaus
     Self.ReleaseAllLoko();
-    for i := 1 to _SLOTS_CNT do
+    for var i := 1 to _SLOTS_CNT do
       Self.sloty[i].mausId := TSlot._MAUS_NULL;
     Self.RepaintSlots(F_Slots);
     TCPServer.BroadcastSlots();
@@ -994,11 +973,6 @@ end;
 // Z funkce je vyskoceno ven az po odeslani dat (nebo vyjimce).
 // Tato funckce ocekava vstupni data bez XORu na konci (prida ho sama).
 procedure TuLI.Send(data: TBuffer);
-var
-  x: Byte;
-  i: Integer;
-  log: string;
-  asp: PAsync;
 begin
   if (not Self.ComPort.connected) then
   begin
@@ -1012,8 +986,8 @@ begin
   end;
 
   // xor
-  x := 0;
-  for i := 1 to data.Count - 1 do
+  var x := 0;
+  for var i := 1 to data.Count - 1 do
     x := x xor data.data[i];
   Inc(data.Count);
   data.data[data.Count - 1] := x;
@@ -1022,14 +996,15 @@ begin
   if ((not Self.ignoreKeepAliveLogging) or (data.Count <> 4) or
     (not CompareMem(@data.data, @_KEEP_ALIVE, 4))) then
   begin
-    log := '';
-    for i := 0 to data.Count - 1 do
+    var log := '';
+    for var i := 0 to data.Count - 1 do
       log := log + IntToHex(data.data[i], 2) + ' ';
     Self.WriteLog(tllData, 'PUT: ' + log);
   end;
 
+  var asp: PAsync;
+  InitAsync(asp);
   try
-    InitAsync(asp);
     Self.ComPort.WriteAsync(data.data, data.Count, asp);
     while (not Self.ComPort.IsAsyncCompleted(asp)) do
     begin
@@ -1060,8 +1035,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.EnumDevices(const Ports: TStringList);
-var
-  nInd: Integer;
 begin { EnumComPorts }
   with TRegistry.Create(KEY_READ) do
     try
@@ -1071,7 +1044,7 @@ begin { EnumComPorts }
           Ports.BeginUpdate();
           try
             GetValueNames(Ports);
-            for nInd := Ports.Count - 1 downto 0 do
+            for var nInd := Ports.Count - 1 downto 0 do
               Ports.Strings[nInd] := ReadString(Ports.Strings[nInd]);
             Ports.Sort()
           finally
@@ -1102,11 +1075,9 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 function TuLI.CreateBuf(str: ShortString): TBuffer;
-var
-  i: Integer;
 begin
   Result.Count := Length(str);
-  for i := 0 to Result.Count - 1 do
+  for var i := 0 to Result.Count - 1 do
     Result.data[i] := ord(str[i + 1]);
 end;
 
@@ -1147,13 +1118,11 @@ procedure TuLI.SendLocoData(callByte: Byte; addr: Integer);
 var
   toSend: ShortString;
   changed: boolean;
-  addrOld: Integer;
-  i, tmp, tmp2: Integer;
 begin
   toSend := AnsiChar(callByte) + #$E4;
-
   changed := false;
-  addrOld := Self.FindSlot(callByte AND $1F);
+
+  var addrOld := Self.FindSlot(callByte AND $1F);
   if ((addrOld > -1) and (addrOld <> addr)) then
   begin
     // na mysi doslo ke zmene adresy z addrOld na addr
@@ -1183,7 +1152,7 @@ begin
     // lokomotiva neni rizena ovladacem
     toSend := toSend + #$A + #$80 + #0 + #0;
     if ((addr > 0) and (addr < _SLOTS_CNT)) then
-      for i := 0 to _MAX_FUNC do
+      for var i := 0 to _MAX_FUNC do
         Self.sloty[addr].mausFunkce[i] := false;
   end
   else
@@ -1193,6 +1162,7 @@ begin
       (2 + (Byte(Self.sloty[addr].mausId <> (callByte AND $1F)) shl 3));
 
     // rychlost + smer
+    var tmp2: Integer;
     case (Self.sloty[addr].rychlost_stupne) of
       0:
         tmp2 := 0;
@@ -1202,20 +1172,20 @@ begin
       tmp2 := 0;
     end;
 
-    tmp := (((1 - Self.sloty[addr].smer) AND $1) shl 7) + ((tmp2 AND $1E) shr 1)
-      + ((tmp2 AND $01) shl 4);
+    var tmp := (((1 - Self.sloty[addr].smer) AND $1) shl 7) + ((tmp2 AND $1E) shr 1)
+        + ((tmp2 AND $01) shl 4);
 
     toSend := toSend + AnsiChar(tmp);
 
     // F0 - F4
     tmp := (Byte(Self.sloty[addr].funkce[0]) shl 4);
-    for i := 1 to 4 do
+    for var i := 1 to 4 do
       tmp := tmp + (Byte(Self.sloty[addr].funkce[i]) shl (i - 1));
     toSend := toSend + AnsiChar(tmp);
 
     // F5 - F12
     tmp := 0;
-    for i := 5 to 12 do
+    for var i := 5 to 12 do
       tmp := tmp + (Byte(Self.sloty[addr].funkce[i]) shl (i - 5));
     toSend := toSend + AnsiChar(tmp);
 
@@ -1229,9 +1199,6 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.SetBusActive(new: boolean);
-var
-  newStatus: TuLIStatus;
-  i: Integer;
 begin
   if ((new) and (not Self.uLIStatusValid)) then
   begin
@@ -1244,12 +1211,12 @@ begin
 
   if (not new) then
   begin
-    for i := 1 to _SLOTS_CNT do
+    for var i := 1 to _SLOTS_CNT do
       Self.sloty[i].mausId := TSlot._MAUS_NULL;
     Self.RepaintSlots(F_Slots);
   end;
 
-  newStatus := Self.uLIStatus;
+  var newStatus := Self.uLIStatus;
   newStatus.transistor := new;
   Self.SetStatus(newStatus);
 end;
@@ -1319,10 +1286,8 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 function TuLI.FindSlot(mausId: Byte): Integer;
-var
-  i: Integer;
 begin
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     if (Self.sloty[i].mausId = mausId) then
       Exit(i);
   Exit(-1);
@@ -1332,13 +1297,12 @@ end;
 
 function TuLI.CalcParity(data: Byte): Byte;
 var
-  i: Integer;
   parity: boolean;
   tmp: Byte;
 begin
   tmp := data;
   parity := false;
-  for i := 0 to 7 do
+  for var i := 0 to 7 do
   begin
     if ((tmp AND $1) > 0) then
       parity := not parity;
@@ -1361,15 +1325,15 @@ end;
 
 procedure TuLI.RepaintSlots(form: TForm);
 var
-  i, j, cnt: Integer;
+  cnt: Integer;
 begin
   cnt := 0;
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     if (Self.sloty[i].isMaus) then
       Inc(cnt);
 
-  j := 0;
-  for i := 1 to _SLOTS_CNT do
+  var j := 0;
+  for var i := 1 to _SLOTS_CNT do
   begin
     if ((Self.sloty[i].isMaus) and (Self.busEnabled) and (TCPClient.authorised))
     then
@@ -1386,20 +1350,16 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.HardResetSlots();
-var
-  i: Integer;
 begin
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     Self.sloty[i].HardResetSlot();
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.ReleaseAllLoko();
-var
-  i: Integer;
 begin
-  for i := 1 to _SLOTS_CNT do
+  for var i := 1 to _SLOTS_CNT do
     Self.sloty[i].ReleaseLoko();
 end;
 

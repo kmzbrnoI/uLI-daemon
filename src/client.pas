@@ -256,7 +256,7 @@ begin
     raise;
   end;
 
-  Self.tcpClient.IOHandler.DefStringEncoding := enUTF8;
+  Self.tcpClient.IOHandler.DefStringEncoding := IndyTextEncoding_UTF8;
   Self.control_disconnect := false;
 
   Result := 0;
@@ -299,7 +299,7 @@ begin
     Self.rthread := TReadingThread.Create(TIdTCPClient(Sender));
     Self.rthread.OnData := DataReceived;
     Self.rthread.OnTimeout := Timeout;
-    Self.rthread.Resume;
+    Self.rthread.Start();
   except
     (Sender as TIdTCPClient).Disconnect;
     raise;
@@ -393,16 +393,13 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPClient.ParseGlobal();
-var
-  i: Integer;
-  found: boolean;
 begin
   // parse handhake
   if (Self.parsed[1] = 'HELLO') then
   begin
     // kontrola verze protokolu
-    found := false;
-    for i := 0 to Length(protocol_version_accept) - 1 do
+    var found := false;
+    for var i := 0 to Length(protocol_version_accept) - 1 do
     begin
       if (Self.parsed[2] = protocol_version_accept[i]) then
       begin
@@ -442,13 +439,11 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TTCPClient.ParseLokGlobal();
-var
-  oldAuth: boolean;
 begin
   if (UpperCase(parsed[3]) = 'AUTH') then
   begin
     // autorizace uzivatele
-    oldAuth := Self.authorised;
+    var oldAuth := Self.authorised;
     Self.fauthorised := (LowerCase(Self.parsed[4]) = 'ok');
     if (Self.fauthorised) then
     begin
@@ -522,10 +517,6 @@ end;
 procedure TTCPClient.ParseLok();
 var
   addr: Word;
-  slot: Byte;
-  func: TStrings;
-  left, right, i, hvIndex: Integer;
-  HV: THV;
 begin
   addr := StrToInt(parsed[2]);
   parsed[3] := UpperCase(parsed[3]);
@@ -534,15 +525,15 @@ begin
   begin
     if (not Self.lokToSlotMap.ContainsKey(addr)) then
       Exit();
-    slot := Self.lokToSlotMap[addr].slot;
-    hvIndex := uLI.sloty[slot].GetHVIndex(addr);
+    var slot := Self.lokToSlotMap[addr].slot;
+    var hvIndex := uLI.sloty[slot].GetHVIndex(addr);
 
     if (hvIndex = -1) then
     begin
       // prirazeni nove loko do slotu
       if ((parsed[4] = 'ok') or (parsed[4] = 'total')) then
       begin
-        HV := THV.Create(parsed[5]);
+        var HV := THV.Create(parsed[5]);
         HV.total := (parsed[4] = 'total');
         uLI.sloty[slot].AddLoko(HV);
         uLI.SendLokoStolen(uLI.CalcParity(uLI.sloty[slot].mausId + $60), slot);
@@ -606,25 +597,26 @@ begin
 
     if (not Self.lokToSlotMap.ContainsKey(addr)) then
       Exit();
-    slot := Self.lokToSlotMap[addr].slot;
+    var slot := Self.lokToSlotMap[addr].slot;
     if (not uLI.sloty[slot].isLoko) then
       Exit();
-    hvIndex := uLI.sloty[slot].GetHVIndex(addr);
+    var hvIndex := uLI.sloty[slot].GetHVIndex(addr);
     if (hvIndex < 0) then
       Exit();
 
     if (parsed[3] = 'F') then
     begin
-      func := TStringList.Create();
+      var func: TStrings := TStringList.Create();
       ExtractStringsEx(['-'], [], parsed[4], func);
-      left := StrToInt(func[0]);
+      var left := StrToInt(func[0]);
+      var right: Integer;
       if (func.Count > 1) then
         right := StrToInt(func[1])
       else
         right := left;
       func.Free();
 
-      for i := left to right do
+      for var i := left to right do
         if (i < _MAX_FUNC) then
           uLI.sloty[slot].HVs[hvIndex].funkce[i] :=
             (parsed[5][i - left + 1] = '1');

@@ -49,19 +49,18 @@ end; // dtor
 
 procedure TORDb.Parse(data: string);
 var
-  i: Integer;
   list1, list2: TStrings;
 begin
-  try
-    list1 := TStringList.Create();
-    list2 := TStringList.Create();
+  list1 := TStringList.Create();
+  list2 := TStringList.Create();
 
+  try
     ExtractStringsEx([']'], ['['], data, list1);
 
     Self.db.Clear();
     Self.db_reverse.Clear();
 
-    for i := 0 to list1.Count - 1 do
+    for var i := 0 to list1.Count - 1 do
     begin
       list2.Clear();
       ExtractStringsEx([','], [], list1[i], list2);
@@ -74,11 +73,12 @@ begin
       end;
     end;
 
-    list1.Free();
-    list2.Free();
   except
 
   end;
+
+  list1.Free();
+  list2.Free();
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
