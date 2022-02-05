@@ -9,7 +9,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, tUltimateLIConst, ActnList, StdCtrls, ComCtrls, ExtCtrls,
-  Generics.Collections;
+  Generics.Collections, System.Actions;
 
 type
   TF_Main = class(TForm)
@@ -56,7 +56,7 @@ var
 
 implementation
 
-uses Verze, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots,
+uses version, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots,
       GlobalConfig, comDiscovery, fConnect;
 
 {$R *.dfm}
