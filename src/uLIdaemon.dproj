@@ -65,7 +65,7 @@
         <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.2.3.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
         <DCC_UnitSearchPath>C:\vlak\delphi\components\ComPort-Library\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Locale>1029</VerInfo_Locale>
-        <Icon_MainIcon>uLIdaemon_Icon1.ico</Icon_MainIcon>
+        <Icon_MainIcon>..\icons\uLIdaemon.ico</Icon_MainIcon>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <VerInfo_MinorVer>2</VerInfo_MinorVer>
         <VerInfo_Release>3</VerInfo_Release>
