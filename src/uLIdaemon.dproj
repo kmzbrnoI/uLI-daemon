@@ -62,13 +62,12 @@
         <DCC_UsePackage>vcl;rtl;vclx;vclactnband;dbrtl;vcldb;vcldbx;bdertl;dsnap;dsnapcon;TeeUI;TeeDB;Tee;adortl;vclib;ibxpress;IndyCore;IndySystem;IndyProtocols;xmlrtl;inet;intrawebdb_100_120;Intraweb_100_120;VclSmp;vclie;websnap;webdsnap;inetdbbde;inetdbxpress;soaprtl;vclribbon;DbxCommonDriver;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;dbexpress;dbxcds;DelphiX190;CPortLibD2009;DCPdelphi2009;JclDeveloperTools;Jcl;JclVcl;JclContainers;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;System.Win;$(DCC_Namespace)</DCC_Namespace>
-        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.2.3.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.3.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
         <DCC_UnitSearchPath>C:\vlak\delphi\components\ComPort-Library\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Locale>1029</VerInfo_Locale>
         <Icon_MainIcon>..\icons\uLIdaemon.ico</Icon_MainIcon>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
-        <VerInfo_MinorVer>2</VerInfo_MinorVer>
-        <VerInfo_Release>3</VerInfo_Release>
+        <VerInfo_MinorVer>3</VerInfo_MinorVer>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <SanitizedProjectName>uLIdaemon</SanitizedProjectName>
