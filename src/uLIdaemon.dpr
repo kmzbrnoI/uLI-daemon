@@ -42,13 +42,12 @@ uses
   SysUtils,
   Generics.Collections,
   fMain in 'fMain.pas' {F_Main},
-  Verze in 'Verze.pas',
+  version in 'version.pas',
   tUltimateLI in 'tUltimateLI.pas',
   fDebug in 'fDebug.pas' {F_Debug},
   tUltimateLIConst in 'tUltimateLIConst.pas',
   client in 'client.pas',
   listeningThread in 'listeningThread.pas',
-  Hash in 'Hash.pas',
   ORList in 'ORList.pas',
   server in 'server.pas',
   mausSlot in 'mausSlot.pas',
@@ -60,19 +59,12 @@ uses
 
 {$R *.res}
 
-var
-  Mutex: Cardinal;
-  portsList: TList<Integer>;
-  i: Integer;
-  arg, server: string;
-  port: Word;
-
 begin
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-  DecimalSeparator := '.';
+  FormatSettings.DecimalSeparator := '.';
 
   // povolena pouze jedna instance uLI-daemon
-  Mutex := CreateMutex(nil, True, 'uLI-daemon');
+  var Mutex := CreateMutex(nil, True, 'uLI-daemon');
   if ((Mutex = 0) or (GetLastError = ERROR_ALREADY_EXISTS)) then halt(0);
 
   Application.Initialize;
@@ -82,7 +74,6 @@ begin
   Application.CreateForm(TF_Debug, F_Debug);
   Application.CreateForm(TF_slots, F_slots);
   Application.CreateForm(TF_Connect, F_Connect);
-
   try
    TCPServer.Start();
   except
@@ -97,64 +88,69 @@ begin
    F_Main.Open(GlobConfig.port.port);
   end else begin
    // Kontrola pripojenych zarizeni
-   portsList := TList<Integer>.Create();
-   EnumuLIDevices(ULI_DEVICE_DESCRIPTION, portsList);
-   if (portsList.Count = 1) then
-    begin
-      // pripojit k portu
-      F_Main.Open('COM'+IntToStr(portsList[0]));
-    end else begin
-      // zobrazit nabidku portu
-      F_Main.ShowChild(F_Connect);
-
-      if (portsList.Count = 0) then begin
-        F_Connect.GB_Connect.Caption := ' Nenalezeno uLI-master ';
-        F_Main.LogMessage('Nenalezeno uLI-master, pøipojte uLI-master, vyberte port a pøipojte se.');
+   var portsList := TList<Integer>.Create();
+   try
+     EnumuLIDevices(ULI_DEVICE_DESCRIPTION, portsList);
+     if (portsList.Count = 1) then
+      begin
+        // pripojit k portu
+        F_Main.Open('COM'+IntToStr(portsList[0]));
       end else begin
-        F_Connect.GB_Connect.Caption := ' Nalezeno více uLI-master, vyberte jedno ';
-        F_Main.LogMessage('Nalezeno více uLI-master.');
-      end;;
-    end;
-   portsList.Free();
+        // zobrazit nabidku portu
+        F_Main.ShowChild(F_Connect);
+
+        if (portsList.Count = 0) then begin
+          F_Connect.GB_Connect.Caption := ' Nenalezeno uLI-master ';
+          F_Main.LogMessage('Nenalezeno uLI-master, pøipojte uLI-master, vyberte port a pøipojte se.');
+        end else begin
+          F_Connect.GB_Connect.Caption := ' Nalezeno více uLI-master, vyberte jedno ';
+          F_Main.LogMessage('Nalezeno více uLI-master.');
+        end;;
+      end;
+   finally
+     portsList.Free();
+   end;
   end;
 
- // Parsovani argumentu
- server := '';
- port := _DEFAULT_PORT;
- i := 1;
- while (i <= ParamCount) do
+  // Parsovani argumentu
+  var server := '';
+  var port := _DEFAULT_PORT;
   begin
-   arg := ParamStr(i);
-   if ((arg = '-u') and (i < ParamCount)) then
+   var i := 1;
+   while (i <= ParamCount) do
     begin
-     // parse username
-     Inc(i);
-     TCPClient.toAuth.username := ParamStr(i);
-    end else
-   if ((arg = '-p') and (i < ParamCount)) then
-    begin
-     // parse password
-     Inc(i);
-     TCPClient.toAuth.password := ParamStr(i);
-    end else
-   if ((arg = '-s') and (i < ParamCount)) then
-    begin
-     Inc(i);
-     server := ParamStr(i);
-    end else
-   if ((arg = '-pt') and (i < ParamCount)) then
-    begin
-     Inc(i);
-     port := StrToIntDef(ParamStr(i), _DEFAULT_PORT);
-   end;
-   if (arg = '-l') then
-    begin
-     F_Debug.Show();
-     F_Debug.CHB_DataLogging.Checked := true;
-    end;
+     var arg := ParamStr(i);
+     if ((arg = '-u') and (i < ParamCount)) then
+      begin
+       // parse username
+       Inc(i);
+       TCPClient.toAuth.username := ParamStr(i);
+      end else
+     if ((arg = '-p') and (i < ParamCount)) then
+      begin
+       // parse password
+       Inc(i);
+       TCPClient.toAuth.password := ParamStr(i);
+      end else
+     if ((arg = '-s') and (i < ParamCount)) then
+      begin
+       Inc(i);
+       server := ParamStr(i);
+      end else
+     if ((arg = '-pt') and (i < ParamCount)) then
+      begin
+       Inc(i);
+       port := StrToIntDef(ParamStr(i), _DEFAULT_PORT);
+     end;
+     if (arg = '-l') then
+      begin
+       F_Debug.Show();
+       F_Debug.CHB_DataLogging.Checked := true;
+      end;
 
-   Inc(i);
-  end;//while
+     Inc(i);
+    end;//while
+  end;
 
   // pripojeni k serveru z argumentu
   if ((server <> '') and (TCPClient.toAuth.username <> '') and (TCPClient.toAuth.password <> '')) then

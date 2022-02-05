@@ -56,7 +56,7 @@ var
 
 implementation
 
-uses version, fDebug, tUltimateLI, WbemScripting_TLB, ActiveX, client, fSlots,
+uses version, fDebug, tUltimateLI, ActiveX, client, fSlots,
       GlobalConfig, comDiscovery, fConnect;
 
 {$R *.dfm}
@@ -233,7 +233,7 @@ end;
 
 procedure TF_Main.UpdateTitle();
 begin
- Self.Caption := 'uLI-daemon v'+GetVersion(Application.ExeName)+' (build '+GetLastBuildDate()+')';
+ Self.Caption := 'uLI-daemon v'+VersionStr(Application.ExeName)+' (build '+LastBuildDate()+')';
 
  if (TCPClient.user <> '') then
    Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';

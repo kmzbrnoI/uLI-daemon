@@ -215,7 +215,7 @@ procedure TTCPServer.OnTcpServerConnect(AContext: TIdContext);
 begin
  Self.tcpServer.Contexts.LockList();
  try
-   AContext.Connection.IOHandler.DefStringEncoding := TIdEncoding.enUTF8;
+   AContext.Connection.IOHandler.DefStringEncoding := enUTF8;
    F_Debug.Log('Bridge: client connected');
  finally
    Self.tcpServer.Contexts.UnlockList();
