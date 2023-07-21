@@ -246,7 +246,7 @@ end;
 procedure TF_Main.UpdateTitle();
 begin
   Self.Caption := 'uLI-daemon v' + VersionStr(Application.ExeName) + ' (build '
-    + LastBuildDate() + ')';
+    + FormatDateTime('dd.mm.yyyy', BuildDateTime()) + ')';
 
   if (TCPClient.user <> '') then
     Self.Caption := Self.Caption + ' (' + TCPClient.user + ')';
