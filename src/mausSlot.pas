@@ -33,6 +33,7 @@ type
     function GetRychlostStupne(): Word;
     function GetRychlostKmph(): Word;
     function GetFunkce(): TFunkce;
+    function GetFunkceMomentary(): TFunkceType;
     function GetUkradeno(): boolean;
     function GetTotal(): boolean;
 
@@ -51,7 +52,7 @@ type
 
   public
     mausAddr: Integer; // primarni klic
-    mausId: Integer;
+    mausId: Integer; // XpressNet adresa ovladace
     HVs: TObjectList<THV>;
     Sender: TIdContext;
     updating: boolean;
@@ -86,13 +87,14 @@ type
     procedure HideGUI();
     procedure UpdateGUI();
 
-    property isLoko: boolean read fIsLoko;
-    property isMaus: boolean read fIsMaus;
+    property isLoko: boolean read fIsLoko; // zda slot ma alespon nejake HV
+    property isMaus: boolean read fIsMaus; // zda existuje ovladac pro dany slot
 
     property smer: Integer read GetSmer;
     property rychlost_stupne: Word read GetRychlostStupne;
     property rychlost_kmph: Word read GetRychlostKmph;
     property funkce: TFunkce read GetFunkce;
+    property funkceType: TFunkceType read GetFunkceMomentary;
     property ukradeno: boolean read GetUkradeno;
     property total: boolean read GetTotal;
 
@@ -214,6 +216,33 @@ begin
     for HV in Self.HVs do
       for i := 0 to _MAX_FUNC do
         f[i] := f[i] AND HV.funkce[i];
+    Result := f;
+  end;
+end;
+
+function TSlot.GetFunkceMomentary(): TFunkceType;
+var
+  f: TFunkceType;
+  i: Integer;
+  HV: THV;
+begin
+
+  if (Self.HVs.Count = 0) then
+  begin
+    for i := 0 to _MAX_FUNC do
+      f[i] := permanent;
+    Result := f
+  end
+  else if (Self.HVs.Count = 1) then
+    Result := Self.HVs[0].funcType
+  else
+  begin
+    for i := 0 to _MAX_FUNC do
+      f[i] := permanent;
+    for HV in Self.HVs do
+      for i := 0 to _MAX_FUNC do
+        if HV.funcType[i] = momentary then
+          f[i] := momentary;
     Result := f;
   end;
 end;

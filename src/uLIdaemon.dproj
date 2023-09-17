@@ -58,6 +58,8 @@
         <DCC_ExeOutput>..\x86-64\bin</DCC_ExeOutput>
         <DCC_BplOutput>..\x86-64\o</DCC_BplOutput>
         <DCC_DcuOutput>..\x86-64\o</DCC_DcuOutput>
+        <VerInfo_MinorVer>4</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
