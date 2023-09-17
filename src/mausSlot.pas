@@ -52,7 +52,7 @@ type
 
   public
     mausAddr: Integer; // primarni klic
-    mausId: Integer;
+    mausId: Integer; // XpressNet adresa ovladace
     HVs: TObjectList<THV>;
     Sender: TIdContext;
     updating: boolean;
@@ -87,8 +87,8 @@ type
     procedure HideGUI();
     procedure UpdateGUI();
 
-    property isLoko: boolean read fIsLoko;
-    property isMaus: boolean read fIsMaus;
+    property isLoko: boolean read fIsLoko; // zda slot ma alespon nejake HV
+    property isMaus: boolean read fIsMaus; // zda existuje ovladac pro dany slot
 
     property smer: Integer read GetSmer;
     property rychlost_stupne: Word read GetRychlostStupne;
