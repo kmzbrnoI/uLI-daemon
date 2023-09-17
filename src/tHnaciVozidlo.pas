@@ -26,6 +26,7 @@ type
   end;
 
   THVFuncType = (permanent = 0, momentary = 1);
+  TFunkceType = array [0 .. _MAX_FUNC] of THVFuncType; // typ funkci HV
 
   THV = class
   private
@@ -53,7 +54,7 @@ type
 
     funcVyznam: array [0 .. _MAX_FUNC] of string;
     // seznam popisu funkci hnaciho vozidla
-    funcType: array [0 .. _MAX_FUNC] of THVFuncType;
+    funcType: TFunkceType;
     // typy funkci hnaciho vozidla
 
     procedure ParseData(data: string); // parse dat HV ze serveru

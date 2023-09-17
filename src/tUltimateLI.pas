@@ -113,6 +113,9 @@ type
     procedure SendKeepAlive();
     procedure SendStatusRequest();
     procedure SendLocoData(callByte: Byte; addr: Integer);
+    procedure SendLocoFunc13(callByte: Byte; addr: Integer);
+    procedure SendLocoFuncMomentary(callByte: Byte; addr: Integer);
+    procedure SendLocoFunc13Momentary(callByte: Byte; addr: Integer);
 
     procedure SetLogLevel(new: TuLILogLevel);
 
@@ -604,6 +607,25 @@ begin
               Self.SendLocoData(msg.data[0], Self.LokAddrDecode(msg.data[3],
                 msg.data[4]));
             end;
+          07:
+            begin
+              Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F0-F12 request (>=3.6)');
+              Self.SendLocoFuncMomentary(msg.data[0], Self.LokAddrDecode(msg.data[3],
+                msg.data[4]));
+            end;
+          08:
+            begin
+              Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F13-F28 request (>=3.6)');
+              Self.SendLocoFunc13Momentary(msg.data[0], Self.LokAddrDecode(msg.data[3],
+                msg.data[4]));
+            end;
+          09:
+            begin
+              Self.WriteLog(tllCommands, 'GET: locomotive Funktionszustand F13-F28 request (>=3.6)');
+              Self.SendLocoFunc13(msg.data[0], Self.LokAddrDecode(msg.data[3],
+                msg.data[4]));
+            end;
+
         end;
       end;
 
@@ -777,6 +799,52 @@ begin
                 for var i := 0 to 3 do
                   funkce[i + 9] := boolean((msg.data[5] shr i) and $1);
                 Self.sloty[addr].SetFunctions(9, 12, funkce);
+              end;
+            end;
+
+          $23:
+            begin
+              Self.WriteLog(tllCommands, 'GET: set F13-F20 (>=3.6)');
+
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              if ((addr = 0) or (addr > _SLOTS_CNT) or
+                (not Self.sloty[addr].isLoko)) then
+              begin
+                // lokomotiva neni rizena ovladacem
+                // -> odeslat "locomotive is being operated by another device"
+                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
+                  Byte(msg.data[4]));
+              end
+              else
+              begin
+                // lokomotiva je rizena ovladacem -> nastavit funkce\
+                var funkce: TFunkce;
+                for var i := 0 to 7 do
+                  funkce[i + 13] := boolean((msg.data[5] shr i) and $1);
+                Self.sloty[addr].SetFunctions(13, 20, funkce);
+              end;
+            end;
+
+          $28:
+            begin
+              Self.WriteLog(tllCommands, 'GET: set F21-F28 (>=3.6)');
+
+              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              if ((addr = 0) or (addr > _SLOTS_CNT) or
+                (not Self.sloty[addr].isLoko)) then
+              begin
+                // lokomotiva neni rizena ovladacem
+                // -> odeslat "locomotive is being operated by another device"
+                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
+                  Byte(msg.data[4]));
+              end
+              else
+              begin
+                // lokomotiva je rizena ovladacem -> nastavit funkce\
+                var funkce: TFunkce;
+                for var i := 0 to 7 do
+                  funkce[i + 21] := boolean((msg.data[5] shr i) and $1);
+                Self.sloty[addr].SetFunctions(21, 28, funkce);
               end;
             end;
 
@@ -1193,6 +1261,216 @@ begin
   end;
 
   Self.WriteLog(tllCommands, 'PUT: locomotive information');
+  Self.Send(CreateBuf(toSend));
+end;
+
+/// /////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SendLocoFunc13(callByte: Byte; addr: Integer);
+var
+  toSend: ShortString;
+  changed: boolean;
+begin
+  toSend := AnsiChar(callByte) + #$E4;
+  changed := false;
+
+  var addrOld := Self.FindSlot(callByte AND $1F);
+  if ((addrOld > -1) and (addrOld <> addr)) then
+  begin
+    // na mysi doslo ke zmene adresy z addrOld na addr
+    // -> odstranit slot addrOld
+    Self.sloty[addrOld].ReleaseLoko();
+    Self.sloty[addrOld].mausId := TSlot._MAUS_NULL;
+    changed := true;
+  end;
+
+  if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus))
+  then
+  begin
+    // obsazujeme slot adresou
+    Self.sloty[addr].mausId := (callByte AND $1F);
+    changed := true;
+  end;
+
+  if (changed) then
+  begin
+    Self.RepaintSlots(F_Slots);
+    TCPServer.BroadcastSlots();
+  end;
+
+  if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+    (Self.sloty[addr].ukradeno)) then
+  begin
+    // lokomotiva neni rizena ovladacem
+    toSend := toSend + #$A + #$80 + #0 + #0;
+    if ((addr > 0) and (addr < _SLOTS_CNT)) then
+      for var i := 0 to _MAX_FUNC do
+        Self.sloty[addr].mausFunkce[i] := false;
+  end
+  else
+  begin
+    // Kennung (static)
+    toSend := toSend + #$51;
+
+    // F13 - F20
+    var tmp : Integer := 0;
+    for var i := 13 to 20 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkce[i]) shl (i - 13));
+    toSend := toSend + AnsiChar(tmp);
+
+    // F21 - F28
+    tmp := 0;
+    for var i := 21 to 28 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkce[i]) shl (i - 21));
+    toSend := toSend + AnsiChar(tmp);
+
+    // R (emulated)
+    toSend := toSend + #$03; // 28 speed steps
+
+    Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
+  end;
+
+  Self.WriteLog(tllCommands, 'PUT: function F13-F28 information');
+  Self.Send(CreateBuf(toSend));
+end;
+
+/// /////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SendLocoFuncMomentary(callByte: Byte; addr: Integer);
+var
+  toSend: ShortString;
+  changed: boolean;
+begin
+  toSend := AnsiChar(callByte) + #$E4;
+  changed := false;
+
+  var addrOld := Self.FindSlot(callByte AND $1F);
+  if ((addrOld > -1) and (addrOld <> addr)) then
+  begin
+    // na mysi doslo ke zmene adresy z addrOld na addr
+    // -> odstranit slot addrOld
+    Self.sloty[addrOld].ReleaseLoko();
+    Self.sloty[addrOld].mausId := TSlot._MAUS_NULL;
+    changed := true;
+  end;
+
+  if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus))
+  then
+  begin
+    // obsazujeme slot adresou
+    Self.sloty[addr].mausId := (callByte AND $1F);
+    changed := true;
+  end;
+
+  if (changed) then
+  begin
+    Self.RepaintSlots(F_Slots);
+    TCPServer.BroadcastSlots();
+  end;
+
+  if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+    (Self.sloty[addr].ukradeno)) then
+  begin
+    // lokomotiva neni rizena ovladacem
+    toSend := toSend + #$A + #$80 + #0 + #0;
+    if ((addr > 0) and (addr < _SLOTS_CNT)) then
+      for var i := 0 to _MAX_FUNC do
+        Self.sloty[addr].mausFunkce[i] := false;
+  end
+  else
+  begin
+    // Kennung (static)
+    toSend := toSend + #$50;
+
+    // F0 - F4
+    var tmp := (Byte(Self.sloty[addr].funkceType[0]) shl 4);
+    for var i := 1 to 4 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkceType[i]) shl (i - 1));
+    toSend := toSend + AnsiChar(tmp);
+
+    // F5 - F12
+    tmp := 0;
+    for var i := 5 to 12 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkceType[i]) shl (i - 5));
+    toSend := toSend + AnsiChar(tmp);
+
+    // R (emulated)
+    toSend := toSend + #$03; // 28 speed steps
+
+    Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
+  end;
+
+  Self.WriteLog(tllCommands, 'PUT: function F13-F28 momentary information');
+  Self.Send(CreateBuf(toSend));
+end;
+
+/// /////////////////////////////////////////////////////////////////////////////
+
+procedure TuLI.SendLocoFunc13Momentary(callByte: Byte; addr: Integer);
+var
+  toSend: ShortString;
+  changed: boolean;
+begin
+  toSend := AnsiChar(callByte) + #$E4;
+  changed := false;
+
+  var addrOld := Self.FindSlot(callByte AND $1F);
+  if ((addrOld > -1) and (addrOld <> addr)) then
+  begin
+    // na mysi doslo ke zmene adresy z addrOld na addr
+    // -> odstranit slot addrOld
+    Self.sloty[addrOld].ReleaseLoko();
+    Self.sloty[addrOld].mausId := TSlot._MAUS_NULL;
+    changed := true;
+  end;
+
+  if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (not Self.sloty[addr].isMaus))
+  then
+  begin
+    // obsazujeme slot adresou
+    Self.sloty[addr].mausId := (callByte AND $1F);
+    changed := true;
+  end;
+
+  if (changed) then
+  begin
+    Self.RepaintSlots(F_Slots);
+    TCPServer.BroadcastSlots();
+  end;
+
+  if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko) or
+    (Self.sloty[addr].ukradeno)) then
+  begin
+    // lokomotiva neni rizena ovladacem
+    toSend := toSend + #$A + #$80 + #0 + #0;
+    if ((addr > 0) and (addr < _SLOTS_CNT)) then
+      for var i := 0 to _MAX_FUNC do
+        Self.sloty[addr].mausFunkce[i] := false;
+  end
+  else
+  begin
+    // Kennung (static)
+    toSend := toSend + #$51;
+
+    // F13 - F20
+    var tmp : Integer := 0;
+    for var i := 13 to 20 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkceType[i]) shl (i - 13));
+    toSend := toSend + AnsiChar(tmp);
+
+    // F21 - F28
+    tmp := 0;
+    for var i := 21 to 28 do
+      tmp := tmp + (Byte(Self.sloty[addr].funkceType[i]) shl (i - 21));
+    toSend := toSend + AnsiChar(tmp);
+
+    // R (emulated)
+    toSend := toSend + #$03; // 28 speed steps
+
+    Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
+  end;
+
+  Self.WriteLog(tllCommands, 'PUT: function F13-F28 momentary information');
   Self.Send(CreateBuf(toSend));
 end;
 
