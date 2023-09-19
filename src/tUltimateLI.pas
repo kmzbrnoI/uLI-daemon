@@ -604,7 +604,7 @@ begin
     $80:
       begin
         // stop all (power on)
-        Self.WriteLog(tllCommands, 'PUT: STOP ALL LOKS');
+        Self.WriteLog(tllCommands, 'GET: STOP ALL LOKS');
         var slot := Self.FindSlot(msg.data[0] AND $1F);
         if (slot > 0) then
           Self.sloty[slot].ReleaseLoko();
