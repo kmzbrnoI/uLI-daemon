@@ -33,7 +33,7 @@ type
     function GetRychlostStupne(): Word;
     function GetRychlostKmph(): Word;
     function GetFunkce(): TFunkce;
-    function GetFunkceMomentary(): TFunkceType;
+    function GetFunkceType(): TFunkceType;
     function GetUkradeno(): boolean;
     function GetTotal(): boolean;
 
@@ -94,7 +94,7 @@ type
     property rychlost_stupne: Word read GetRychlostStupne;
     property rychlost_kmph: Word read GetRychlostKmph;
     property funkce: TFunkce read GetFunkce;
-    property funkceType: TFunkceType read GetFunkceMomentary;
+    property funkceType: TFunkceType read GetFunkceType;
     property ukradeno: boolean read GetUkradeno;
     property total: boolean read GetTotal;
 
@@ -220,7 +220,7 @@ begin
   end;
 end;
 
-function TSlot.GetFunkceMomentary(): TFunkceType;
+function TSlot.GetFunkceType(): TFunkceType;
 var
   f: TFunkceType;
   i: Integer;

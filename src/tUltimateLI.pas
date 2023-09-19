@@ -116,8 +116,8 @@ type
     function  CheckAddrChangeOK(callByte: Byte; addr: Integer): Boolean;
     procedure SendLocoData(callByte: Byte; addr: Integer);
     procedure SendLocoFunc13(callByte: Byte; addr: Integer);
-    procedure SendLocoFuncMomentary(callByte: Byte; addr: Integer);
-    procedure SendLocoFunc13Momentary(callByte: Byte; addr: Integer);
+    procedure SendLocoFuncType(callByte: Byte; addr: Integer);
+    procedure SendLocoFunc13Type(callByte: Byte; addr: Integer);
     procedure SendNotSupported(callByte: Byte);
 
     procedure SetLogLevel(new: TuLILogLevel);
@@ -653,13 +653,13 @@ begin
           07:
             begin
               Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F0-F12 request (>=3.6)');
-              Self.SendLocoFuncMomentary(msg.data[0], Self.LokAddrDecode(msg.data[3],
+              Self.SendLocoFuncType(msg.data[0], Self.LokAddrDecode(msg.data[3],
                 msg.data[4]));
             end;
           08:
             begin
               Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F13-F28 request (>=3.6)');
-              Self.SendLocoFunc13Momentary(msg.data[0], Self.LokAddrDecode(msg.data[3],
+              Self.SendLocoFunc13Type(msg.data[0], Self.LokAddrDecode(msg.data[3],
                 msg.data[4]));
             end;
           09:
@@ -1370,7 +1370,7 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoFuncMomentary(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoFuncType(callByte: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
@@ -1405,7 +1405,7 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoFunc13Momentary(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoFunc13Type(callByte: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
