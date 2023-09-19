@@ -223,25 +223,22 @@ end;
 function TSlot.GetFunkceType(): TFunkceType;
 var
   f: TFunkceType;
-  i: Integer;
-  HV: THV;
 begin
-
   if (Self.HVs.Count = 0) then
   begin
-    for i := 0 to _MAX_FUNC do
+    for var i := 0 to _MAX_FUNC do
       f[i] := permanent;
-    Result := f
+    Result := f;
   end
   else if (Self.HVs.Count = 1) then
     Result := Self.HVs[0].funcType
   else
   begin
-    for i := 0 to _MAX_FUNC do
+    for var i := 0 to _MAX_FUNC do
       f[i] := permanent;
-    for HV in Self.HVs do
-      for i := 0 to _MAX_FUNC do
-        if HV.funcType[i] = momentary then
+    for var HV: THV in Self.HVs do
+      for var i := 0 to _MAX_FUNC do
+        if (HV.funcType[i] = momentary) then
           f[i] := momentary;
     Result := f;
   end;
