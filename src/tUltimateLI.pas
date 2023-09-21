@@ -608,18 +608,16 @@ begin
         var slot := Self.FindSlot(msg.data[0] AND $1F);
         if (slot > 0) then
           Self.sloty[slot].ReleaseLoko();
+
+        Self.WriteLog(tllCommands, 'PUT: 3x STOP');
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
-        Sleep(50);
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
-        Sleep(50);
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
-        Sleep(50);
+
+        Self.WriteLog(tllCommands, 'PUT: 3x GO');
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-        Sleep(50);
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-        Sleep(50);
         Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-        Sleep(50);
       end;
     $92:
       begin
