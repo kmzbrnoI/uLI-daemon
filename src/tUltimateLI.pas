@@ -645,17 +645,17 @@ begin
             end;
           07:
             begin
-              Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F0-F12 request (>=3.6)');
+              Self.WriteLog(tllCommands, 'GET: function status F0-F12 request (>=3.0)');
               Self.SendLocoFuncType(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
             end;
           08:
             begin
-              Self.WriteLog(tllCommands, 'GET: locomotive Funktionsstatus F13-F28 request (>=3.6)');
+              Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13Type(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
             end;
           09:
             begin
-              Self.WriteLog(tllCommands, 'GET: locomotive Funktionszustand F13-F28 request (>=3.6)');
+              Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
             end;
           else
