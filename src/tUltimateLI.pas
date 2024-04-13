@@ -586,6 +586,8 @@ begin
               Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
               Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
             end;
+        else
+          Self.SendNotSupported(msg.data[0]);
         end; // case msg.data[2]
       end; // $21
 
@@ -898,9 +900,12 @@ begin
                 Self.sloty[addr].SetFunctions(13, 20, funkce);
               end;
             end;
-
+        else
+          Self.SendNotSupported(msg.data[0]);
         end; // case msg.data[2]
       end; // $E4
+  else
+    Self.SendNotSupported(msg.data[0]);
   end; // case msg.data[1]
 end;
 
