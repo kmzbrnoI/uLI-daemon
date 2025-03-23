@@ -35,6 +35,7 @@ type
   TTCPClient = class
   private const
     _PROTOCOL_VERSION = '1.1'; // verze protokolu od klienta
+    _PROTOCOL_APP_NAME = 'uLIdaemon';
 
   private
     rthread: TReadingThread;
@@ -313,7 +314,7 @@ begin
   Self.pingTimer.Enabled := true;
 
   // odeslat handshake
-  Self.SendLn('-;HELLO;' + Self._PROTOCOL_VERSION + ';');
+  Self.SendLn('-;HELLO;' + Self._PROTOCOL_VERSION + ';' + Self._PROTOCOL_APP_NAME);
 end;
 
 procedure TTCPClient.OnTcpClientDisconnected(Sender: TObject);
