@@ -9,7 +9,7 @@ interface
 
 uses SysUtils, IdTCPServer, IdTCPConnection, IdGlobal, SyncObjs,
   Classes, StrUtils, tUltimateLIConst, Graphics, Windows,
-  IdContext, ComCtrls, IdSync, Generics.Collections;
+  IdContext, ComCtrls, IdSync, Generics.Collections, IdSocketHandle;
 
 const
   _BRIDGE_DEFAULT_PORT = 5733; // default port, na kterem bezi bridge server
@@ -23,7 +23,6 @@ type
     parsed: TStrings;
     // naparsovana data, implementovano jako globalni promenna pro zrychleni
     data: string; // prijata data v plain-text forme
-    fport: Word; // aktualni port serveru
     lastAuth: TAuthStatus; // posledni stav autorizace
     readLock: TCriticalSection;
 
@@ -44,8 +43,7 @@ type
     constructor Create();
     destructor Destroy(); override;
 
-    procedure Start(port: Word); overload; // spustit server
-    procedure Start(); overload; // spustit server
+    procedure Start(); // spustit server
     procedure Stop(); // zastavit server
     procedure DisconnectClient(conn: TIdContext); // odpojit konkretniho klienta
 
@@ -56,7 +54,6 @@ type
     procedure SendLn(AContext: TIdContext; str: string);
 
     property openned: boolean read IsOpenned;
-    property port: Word read fport write fport;
   end; // TPanelTCPClient
 
 var
@@ -113,7 +110,6 @@ constructor TTCPServer.Create();
 begin
   inherited;
 
-  Self.fport := _BRIDGE_DEFAULT_PORT;
   Self.parsed := TStringList.Create;
   Self.lastAuth := TAuthStatus.cannot;
 
@@ -123,6 +119,8 @@ begin
   Self.tcpServer.OnConnect := Self.OnTcpServerConnect;
   Self.tcpServer.OnDisconnect := Self.OnTcpServerDisconnect;
   Self.tcpServer.OnExecute := Self.OnTcpServerExecute;
+  var binding: TIdSocketHandle := Self.tcpServer.Bindings.Add();
+  binding.SetBinding('127.0.0.1', _BRIDGE_DEFAULT_PORT);
 end; // ctor
 
 destructor TTCPServer.Destroy();
@@ -145,7 +143,7 @@ end; // dtor
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TTCPServer.Start(port: Word);
+procedure TTCPServer.Start();
 begin
   if (Self.tcpServer.Active) then
     Exit();
@@ -153,9 +151,6 @@ begin
   F_Main.P_Server.Color := clYellow;
   F_Main.P_Server.Hint := 'Bridge server: spouštění...';
   F_Debug.Log('Bridge server: spouštění...');
-
-  Self.tcpServer.DefaultPort := port;
-  Self.fport := port;
 
   try
     Self.tcpServer.Active := true;
@@ -174,11 +169,6 @@ begin
   F_Main.P_Server.Color := clGreen;
   F_Main.P_Server.Hint := 'Bridge server: spuštěn';
   F_Debug.Log('Bridge server: spuštěn');
-end;
-
-procedure TTCPServer.Start();
-begin
-  Self.Start(Self.port);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
