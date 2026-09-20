@@ -1006,6 +1006,8 @@ begin
             IntToStr(msg.data[4] AND $F);
           Self.WriteLog(tllCommands, 'GET: uLI version hw:' + Self.uLIVersion.hw
             + ', sw:' + Self.uLIVersion.sw);
+
+          F_Main.P_ULI.Hint := 'Připojeno k uLI-master HW='+Self.uLIVersion.hw + ', SW='+Self.uLIVersion.sw;
         end;
 
       end; // case msg.data[1]
