@@ -3,7 +3,7 @@
         <ProjectGuid>{49B00A44-ED8C-4C34-8D77-61104754BC6C}</ProjectGuid>
         <ProjectVersion>20.1</ProjectVersion>
         <MainSource>uLIdaemon.dpr</MainSource>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
@@ -94,13 +94,15 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.1.0;InternalName=uLIdaemon;LegalCopyright=Jan Malina;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
         <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.1.0;InternalName=uLIdaemon;LegalCopyright=Jan Malina;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
         <BT_BuildType>Debug</BT_BuildType>
+        <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_MapFile>3</DCC_MapFile>
