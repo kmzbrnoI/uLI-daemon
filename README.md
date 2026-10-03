@@ -47,7 +47,7 @@ Princip funkce aplikace:
  * `-u` username
  * `-p` password
  * `-s` server (ip/dns)
- * `pt` port
+ * `-pt` port
  * `-l` zobrazit logovací okno
 
 Příklad:
