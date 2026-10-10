@@ -124,8 +124,6 @@ type
 
     procedure SetLogLevel(new: TuLILogLevel);
 
-    function CreateBuf(str: ShortString): TBuffer;
-
     procedure SetBusActive(new: boolean);
     procedure SetDCC(new: boolean);
 
@@ -457,7 +455,7 @@ begin
     if (Self.Parity(callByte)) then
     begin
       msgStartI := msgStartI + 1;
-      WriteLog(tllErrors, 'GET: PARITY ERROR');
+      WriteLog(tllWarnings, 'GET: PARITY ERROR');
       continue;
     end;
 
@@ -474,7 +472,7 @@ begin
     var rxor: Byte := Self.Xorxor(Self.Fbuf_in.data, msgStartI+3, msgLen-3);
     if (rxor <> 0) then
     begin
-      WriteLog(tllErrors, 'GET: XOR ERROR: ' + Self.BufToStr(@Self.Fbuf_in.data, msgStartI, msgLen));
+      WriteLog(tllWarnings, 'GET: XOR ERROR: ' + Self.BufToStr(@Self.Fbuf_in.data, msgStartI, msgLen));
       msgStartI := msgStartI + msgLen; // ignore whole message
       break;
     end;
@@ -538,7 +536,7 @@ begin
             begin
               Self.WriteLog(tllInfo, 'GET: command station status request');
               Self.WriteLog(tllInfo, 'SEND: command station status');
-              Self.SendXN(deviceAddr, #$62 + #$22 + (char(not Self.DCC)));
+              Self.SendXN(deviceAddr, ShortString(#$62 + #$22 + (char(not Self.DCC))));
             end;
 
           $81:
@@ -583,7 +581,7 @@ begin
         Self.WriteLog(tllInfo,
           'PUT: Default Accessory Decoder information');
         var data2: Byte := $20 + ((msg[1] and 1) shl 4);
-        Self.SendXN(deviceAddr, #$42 + AnsiChar(msg[0]) + AnsiChar(data2));
+        Self.SendXN(deviceAddr, ShortString(#$42) + AnsiChar(msg[0]) + AnsiChar(data2));
       end; // $42
 
     $80:
@@ -958,11 +956,11 @@ begin
             end;
           $0B:
             begin
-              Self.WriteLog(tllErrors, 'WARN: GET: Missed timer');
+              Self.WriteLog(tllWarnings, 'WARN: GET: Missed timer');
             end;
           $0C:
             begin
-              Self.WriteLog(tllErrors, 'WARN: GET: USART RX Framing error');
+              Self.WriteLog(tllWarnings, 'WARN: GET: USART RX Framing error');
             end;
         end;
       end;
@@ -1070,7 +1068,7 @@ begin
   end;
 
   // xor
-  var rawData: ShortString := #$51 + #$15 + AnsiChar(callByte) + data + AnsiChar(Self.Xorxor(data));
+  var rawData: ShortString := ShortString(#$51) + #$15 + AnsiChar(callByte) + data + AnsiChar(Self.Xorxor(data));
 
   // log
   if ((not Self.ignoreKeepAliveLogging) or (callByte <> $A0) or (Length(data) <> 2) or (ord(data[2]) <> _KEEP_ALIVE)) then
@@ -1154,16 +1152,7 @@ begin
   Self.WriteLog(tllInfo, 'PUT: status');
   var data: Byte := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
     (Integer(new.aliveSending) shl 3);
-  Self.SenduLI(#$11 + AnsiChar(data));
-end;
-
-/// /////////////////////////////////////////////////////////////////////////////
-
-function TuLI.CreateBuf(str: ShortString): TBuffer;
-begin
-  Result.Count := Length(str);
-  for var i := 0 to Result.Count - 1 do
-    Result.data[i] := ord(str[i + 1]);
+  Self.SenduLI(ShortString(#$11) + AnsiChar(data));
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1507,7 +1496,7 @@ end;
 procedure TuLI.SendLokoStolen(deviceAddr: Byte; addrHi: Byte; addrLo: Byte);
 begin
   Self.WriteLog(tllInfo, 'PUT: locomotive is being operated by another device');
-  Self.SendXN(deviceAddr, #$E3 + #$40 + AnsiChar(addrHi) + AnsiChar(addrLo));
+  Self.SendXN(deviceAddr, ShortString(#$E3 + #$40) + AnsiChar(addrHi) + AnsiChar(addrLo));
 end;
 
 procedure TuLI.SendLokoStolen(deviceAddr: Byte; addr: Word);
