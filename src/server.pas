@@ -150,7 +150,7 @@ begin
 
   F_Main.P_Server.Color := clYellow;
   F_Main.P_Server.Hint := 'Bridge server: spouštění...';
-  F_Debug.Log('Bridge server: spouštění...');
+  F_Debug.Log('Bridge server: spouštění...', tllInfo);
 
   try
     Self.tcpServer.Active := true;
@@ -158,17 +158,15 @@ begin
     on E: Exception do
     begin
       F_Main.P_Server.Color := clRed;
-      F_Main.P_Server.Hint :=
-        'ERR: Panel server: chyba při startování serveru : ' + E.Message;
-      F_Debug.Log('ERR: Panel server: chyba při startování serveru : ' +
-        E.Message);
+      F_Main.P_Server.Hint := 'ERR: Panel server: chyba při startování serveru : ' + E.Message;
+      F_Debug.Log('ERR: Panel server: chyba při startování serveru : ' + E.Message, tllErrors);
       raise;
     end;
   end;
 
   F_Main.P_Server.Color := clGreen;
   F_Main.P_Server.Hint := 'Bridge server: spuštěn';
-  F_Debug.Log('Bridge server: spuštěn');
+  F_Debug.Log('Bridge server: spuštěn', tllInfo);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -179,7 +177,7 @@ begin
     Exit();
 
   F_Main.P_Server.Hint := 'Bridge server: vypínám...';
-  F_Debug.Log('Bridge server: vypínám...');
+  F_Debug.Log('Bridge server: vypínám...', tllInfo);
   F_Main.P_Server.Color := clGray;
 
   with Self.tcpServer.Contexts.LockList do
@@ -213,7 +211,7 @@ begin
   Self.tcpServer.Contexts.LockList();
   try
     AContext.Connection.IOHandler.DefStringEncoding := IndyTextEncoding_UTF8;
-    F_Debug.Log('Bridge: client connected');
+    F_Debug.Log('Bridge: client connected', tllInfo);
   finally
     Self.tcpServer.Contexts.UnlockList();
   end;
@@ -224,7 +222,7 @@ procedure TTCPServer.OnTcpServerDisconnect(AContext: TIdContext);
 begin
   Self.tcpServer.Contexts.LockList();
   try
-    F_Debug.Log('Bridge: client disconnected');
+    F_Debug.Log('Bridge: client disconnected', tllInfo);
   finally
     Self.tcpServer.Contexts.UnlockList();
   end;

@@ -5,8 +5,7 @@ interface
 uses Classes, SysUtils;
 
 type
-  TuLILogLevel = (tllNo = 0, tllErrors = 1, tllCommands = 2, tllData = 3,
-    tllChanges = 4, tllDetail = 5);
+  TuLILogLevel = (tllNo = 0, tllErrors = 1, tllWarnings = 2, tllInfo = 3, tllData = 4, tllDetail = 5);
   TuLILogEvent = procedure(Sender: TObject; level: TuLILogLevel; msg: string)
     of object;
 

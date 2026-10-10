@@ -358,7 +358,7 @@ begin
   Self.data := data;
 
   // logovani dat
-  F_Debug.Log('GET: ' + data);
+  F_Debug.Log('GET: ' + data, tllData);
 
   try
     if (Self.parsed.Count < 2) then
@@ -682,7 +682,7 @@ begin
       Self.OnTcpClientDisconnected(Self);
   end;
 
-  F_Debug.Log('SEND: ' + str);
+  F_Debug.Log('SEND: ' + str, tllData);
 end;
 
 procedure TTCPClient.LokoPlease(addr: Word; token: string);

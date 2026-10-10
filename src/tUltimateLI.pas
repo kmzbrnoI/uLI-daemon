@@ -297,7 +297,7 @@ end;
 
 procedure TuLI.ComAfterOpen(Sender: TObject);
 begin
-  Self.WriteLog(tllCommands, 'OPEN OK');
+  Self.WriteLog(tllInfo, 'OPEN OK');
   F_Main.P_ULI.Color := clYellow;
   F_Main.P_ULI.Hint := 'Připojeno k uLI-master, čekám na stav...';
 
@@ -310,7 +310,7 @@ begin
   Self.SetStatus(Self.uLIStatus);
 
   // uLI version request
-  Self.WriteLog(tllCommands, 'SEND: version request');
+  Self.WriteLog(tllInfo, 'SEND: version request');
   Self.SenduLI(#$11 + #$80);
 end;
 
@@ -332,7 +332,7 @@ end;
 
 procedure TuLI.ComAfterClose(Sender: TObject);
 begin
-  Self.WriteLog(tllCommands, 'CLOSE OK');
+  Self.WriteLog(tllInfo, 'CLOSE OK');
   Self.uLIStatusValid := false;
 
   for var i := 1 to _SLOTS_CNT do
@@ -366,7 +366,7 @@ begin
   Self.ComPort.port := port;
 
   F_Main.ClearMessage();
-  Self.WriteLog(tllCommands, 'OPENING port=' + port + ' br=' +
+  Self.WriteLog(tllInfo, 'OPENING port=' + port + ' br=' +
     BaudRateToStr(Self.ComPort.BaudRate) + ' sb=' +
     StopBitsToStr(Self.ComPort.StopBits) + ' db=' +
     DataBitsToStr(Self.ComPort.DataBits) + ' fc=' +
@@ -389,7 +389,7 @@ begin
   if (not Self.ComPort.connected) then
     Exit();
 
-  Self.WriteLog(tllCommands, 'CLOSING');
+  Self.WriteLog(tllInfo, 'CLOSING');
 
   if (Self.busEnabled) then
     Self.busEnabled := false;
@@ -527,46 +527,46 @@ begin
         case (msg[0]) of
           $21:
             begin
-              Self.WriteLog(tllCommands,
+              Self.WriteLog(tllInfo,
                 'GET: command station software version request');
-              Self.WriteLog(tllCommands,
+              Self.WriteLog(tllInfo,
                 'SEND: command station software version');
               Self.SendXN(deviceAddr, #$63 + #$21 + #$36 + #$00);
             end;
 
           $24:
             begin
-              Self.WriteLog(tllCommands, 'GET: command station status request');
-              Self.WriteLog(tllCommands, 'SEND: command station status');
+              Self.WriteLog(tllInfo, 'GET: command station status request');
+              Self.WriteLog(tllInfo, 'SEND: command station status');
               Self.SendXN(deviceAddr, #$62 + #$22 + (char(not Self.DCC)));
             end;
 
           $81:
             begin
-              Self.WriteLog(tllCommands, 'GET: resume operations request');
+              Self.WriteLog(tllInfo, 'GET: resume operations request');
 
-              Self.WriteLog(tllCommands, 'PUT: GO');
+              Self.WriteLog(tllInfo, 'PUT: GO');
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
 
-              Self.WriteLog(tllCommands, 'PUT: STOP');
+              Self.WriteLog(tllInfo, 'PUT: STOP');
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
             end;
 
           $80:
             begin
-              Self.WriteLog(tllCommands, 'GET: STOP operations request');
+              Self.WriteLog(tllInfo, 'GET: STOP operations request');
 
               // zastavit hnaci vozidlo
               var i := Self.FindSlot(deviceAddr);
               if ((i > -1) and (Self.sloty[i].isLoko)) then
                 Self.sloty[i].STOPloko();
 
-              Self.WriteLog(tllCommands, 'PUT: STOP');
+              Self.WriteLog(tllInfo, 'PUT: STOP');
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
-              Self.WriteLog(tllCommands, 'PUT: GO');
+              Self.WriteLog(tllInfo, 'PUT: GO');
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
             end;
@@ -578,9 +578,9 @@ begin
     $42:
       begin
         // Accessory Decoder information request
-        Self.WriteLog(tllCommands,
+        Self.WriteLog(tllInfo,
           'GET: Accessory Decoder information request');
-        Self.WriteLog(tllCommands,
+        Self.WriteLog(tllInfo,
           'PUT: Default Accessory Decoder information');
         var data2: Byte := $20 + ((msg[1] and 1) shl 4);
         Self.SendXN(deviceAddr, #$42 + AnsiChar(msg[0]) + AnsiChar(data2));
@@ -589,17 +589,17 @@ begin
     $80:
       begin
         // stop all (power on)
-        Self.WriteLog(tllCommands, 'GET: STOP ALL LOKS');
+        Self.WriteLog(tllInfo, 'GET: STOP ALL LOKS');
         var slot := Self.FindSlot(deviceAddr);
         if (slot > 0) then
           Self.sloty[slot].ReleaseLoko();
 
-        Self.WriteLog(tllCommands, 'PUT: 3x STOP');
+        Self.WriteLog(tllInfo, 'PUT: 3x STOP');
         Self.SendXN(0, _CMD_DCC_STOP);
         Self.SendXN(0, _CMD_DCC_STOP);
         Self.SendXN(0, _CMD_DCC_STOP);
 
-        Self.WriteLog(tllCommands, 'PUT: 3x GO');
+        Self.WriteLog(tllInfo, 'PUT: 3x GO');
         Self.SendXN(0, _CMD_DCC_ON);
         Self.SendXN(0, _CMD_DCC_ON);
         Self.SendXN(0, _CMD_DCC_ON);
@@ -625,22 +625,22 @@ begin
         case (msg[0]) of
           00:
             begin
-              Self.WriteLog(tllCommands, 'GET: locomotive information request');
+              Self.WriteLog(tllInfo, 'GET: locomotive information request');
               Self.SendLocoData(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           07:
             begin
-              Self.WriteLog(tllCommands, 'GET: function status F0-F12 request (>=3.0)');
+              Self.WriteLog(tllInfo, 'GET: function status F0-F12 request (>=3.0)');
               Self.SendLocoFuncType(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           08:
             begin
-              Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
+              Self.WriteLog(tllInfo, 'GET: function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13Type(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           09:
             begin
-              Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
+              Self.WriteLog(tllInfo, 'GET: function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           else
@@ -653,7 +653,7 @@ begin
         case (msg[0]) of
           $10 .. $13:
             begin
-              Self.WriteLog(tllCommands, 'GET: locomotive set speed');
+              Self.WriteLog(tllInfo, 'GET: locomotive set speed');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               var maxsp: Integer;
@@ -749,7 +749,7 @@ begin
 
           $20:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F0-F4');
+              Self.WriteLog(tllInfo, 'GET: set F0-F4');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -772,7 +772,7 @@ begin
 
           $21:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F5-F8');
+              Self.WriteLog(tllInfo, 'GET: set F5-F8');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -794,7 +794,7 @@ begin
 
           $22:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F9-F12');
+              Self.WriteLog(tllInfo, 'GET: set F9-F12');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -816,7 +816,7 @@ begin
 
           $23:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F13-F20 (>=3.6)');
+              Self.WriteLog(tllInfo, 'GET: set F13-F20 (>=3.6)');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -837,7 +837,7 @@ begin
 
           $28:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F21-F28 (>=3.6)');
+              Self.WriteLog(tllInfo, 'GET: set F21-F28 (>=3.6)');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -858,7 +858,7 @@ begin
 
           $F3:
             begin
-              Self.WriteLog(tllCommands, 'GET: set F13-F20');
+              Self.WriteLog(tllInfo, 'GET: set F13-F20');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -918,11 +918,11 @@ begin
               F_Main.LogMessage('uLI-ERR: GET: Unknown command');
             end;
           $04:
-            Self.WriteLog(tllCommands, 'GET: OK');
+            Self.WriteLog(tllInfo, 'GET: OK');
           $05:
             begin
               if (not Self.ignoreKeepAliveLogging) then
-                Self.WriteLog(tllChanges, 'GET: keep-alive');
+                Self.WriteLog(tllInfo, 'GET: keep-alive');
               Self.KAreceiveTimeout := 0;
 
               if ((F_Main.P_ULI.Color = clGreen) or
@@ -970,7 +970,7 @@ begin
     $11:
       begin
         // uLI-master status response
-        Self.WriteLog(tllCommands, 'GET: master status');
+        Self.WriteLog(tllInfo, 'GET: master status');
         Self.ParseuLIStatus(msg, msgLen);
 
         F_Main.P_ULI.Color := clGreen;
@@ -985,7 +985,7 @@ begin
             IntToStr(msg[1] AND $F);
           Self.uLIVersion.sw := IntToStr((msg[2] shr 4) AND $F) + '.' +
             IntToStr(msg[2] AND $F);
-          Self.WriteLog(tllCommands, 'GET: uLI version hw:' + Self.uLIVersion.hw
+          Self.WriteLog(tllInfo, 'GET: uLI version hw:' + Self.uLIVersion.hw
             + ', sw:' + Self.uLIVersion.sw);
 
           F_Main.P_ULI.Hint := 'Připojeno k uLI-master HW='+Self.uLIVersion.hw + ', SW='+Self.uLIVersion.sw;
@@ -1116,7 +1116,7 @@ end;
 procedure TuLI.SetLogLevel(new: TuLILogLevel);
 begin
   Self.fLogLevel := new;
-  Self.WriteLog(tllCommands, 'NEW LOGLEVEL: ' + IntToStr(Integer(new)));
+  Self.WriteLog(tllInfo, 'NEW LOGLEVEL: ' + IntToStr(Integer(new)));
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1151,7 +1151,7 @@ end { EnumComPorts };
 
 procedure TuLI.SetStatus(new: TuLIStatus);
 begin
-  Self.WriteLog(tllCommands, 'PUT: status');
+  Self.WriteLog(tllInfo, 'PUT: status');
   var data: Byte := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
     (Integer(new.aliveSending) shl 3);
   Self.SenduLI(#$11 + AnsiChar(data));
@@ -1190,13 +1190,13 @@ end;
 procedure TuLI.SendKeepAlive();
 begin
   if (not Self.ignoreKeepAliveLogging) then
-    Self.WriteLog(tllChanges, 'SEND: keep-alive');
+    Self.WriteLog(tllInfo, 'SEND: keep-alive');
   Self.SenduLI(#$01 + #$05);
 end;
 
 procedure TuLI.SendStatusRequest();
 begin
-  Self.WriteLog(tllChanges, 'SEND: status request');
+  Self.WriteLog(tllInfo, 'SEND: status request');
   Self.SenduLI(#$11 + #$A2);
 end;
 
@@ -1286,14 +1286,14 @@ begin
     end;
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllCommands, 'PUT: locomotive information');
+    Self.WriteLog(tllInfo, 'PUT: locomotive information');
 
   end else begin
     // lokomotiva neni rizena ovladacem
     if ((addr > 0) and (addr < _SLOTS_CNT)) then
       for var i := 0 to _MAX_FUNC do
         Self.sloty[addr].mausFunkce[i] := false;
-    Self.WriteLog(tllCommands, 'PUT: locomotive is busy - empty slot');
+    Self.WriteLog(tllInfo, 'PUT: locomotive is busy - empty slot');
     toSend := toSend + #$A + #$80 + #0 + #0;
   end;
 
@@ -1334,11 +1334,11 @@ begin
     toSend := toSend + #$03; // 28 speed steps
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllCommands, 'PUT: function F13-F28 information');
+    Self.WriteLog(tllInfo, 'PUT: function F13-F28 information');
   end else begin
     // no good addres or slot, send empty response
     toSend := toSend + #$00 + #$00 + #$03;
-    Self.WriteLog(tllCommands, 'PUT: function F13-F28 information empty');
+    Self.WriteLog(tllInfo, 'PUT: function F13-F28 information empty');
   end;
 
   Self.SendXN(deviceAddr, toSend);
@@ -1373,11 +1373,11 @@ begin
     end;
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllCommands, 'PUT: function F0-F12 momentary information');
+    Self.WriteLog(tllInfo, 'PUT: function F0-F12 momentary information');
   end else begin
     // no good addres or slot, send empty response
     toSend := toSend + #$00 + #$00;
-    Self.WriteLog(tllCommands, 'PUT: function F0-F12 momentary information empty');
+    Self.WriteLog(tllInfo, 'PUT: function F0-F12 momentary information empty');
   end;
 
   Self.SendXN(deviceAddr, toSend);
@@ -1415,10 +1415,10 @@ begin
     toSend := toSend + #$03; // 28 speed steps
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllCommands, 'PUT: function F13-F28 momentary information');
+    Self.WriteLog(tllInfo, 'PUT: function F13-F28 momentary information');
   end else begin
     // no good addres or slot, send empty response
-    Self.WriteLog(tllCommands, 'PUT: function F13-F28 momentary information empty');
+    Self.WriteLog(tllInfo, 'PUT: function F13-F28 momentary information empty');
     toSend := toSend + #$00 + #$00 + #$03;
   end;
 
@@ -1429,7 +1429,7 @@ end;
 
 procedure TuLI.SendNotSupported(deviceAddr: Byte);
 begin
-  Self.WriteLog(tllCommands, 'PUT: command not supported');
+  Self.WriteLog(tllInfo, 'PUT: command not supported');
   Self.SendXN(deviceAddr, #$61 + #$82);
 end;
 
@@ -1506,7 +1506,7 @@ end;
 
 procedure TuLI.SendLokoStolen(deviceAddr: Byte; addrHi: Byte; addrLo: Byte);
 begin
-  Self.WriteLog(tllCommands, 'PUT: locomotive is being operated by another device');
+  Self.WriteLog(tllInfo, 'PUT: locomotive is being operated by another device');
   Self.SendXN(deviceAddr, #$E3 + #$40 + AnsiChar(addrHi) + AnsiChar(addrLo));
 end;
 

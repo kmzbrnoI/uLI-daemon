@@ -101,7 +101,7 @@ begin
 
   Self.CreateShapes();
 
-  uLI.logLevel := tllNo;
+  uLI.logLevel := tllWarnings;
   uLI.OnLog := Self.OnuLILog;
 
   GlobConfig.LoadFile();
@@ -133,7 +133,7 @@ end;
 procedure TF_Main.OnuLILog(Sender: TObject; lvl: TuLILogLevel; msg: string);
 begin
   if (Assigned(F_Debug)) then
-    F_Debug.Log('uLI: ' + msg);
+    F_Debug.Log('uLI: ' + msg, lvl);
 end;
 
 procedure TF_Main.OnuLIUsartMsgCntChange(Sender: TObject);

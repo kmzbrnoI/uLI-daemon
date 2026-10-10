@@ -4,36 +4,33 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, StrUtils;
+  Dialogs, StdCtrls, ComCtrls, StrUtils, tUltimateLIConst;
 
 type
   TF_Debug = class(TForm)
-    CHB_DataLogging: TCheckBox;
     LV_Log: TListView;
     M_Data: TMemo;
     B_ClearLog: TButton;
-    GB_SendData: TGroupBox;
-    E_Send: TEdit;
-    B_Send: TButton;
     Label1: TLabel;
     L_len: TLabel;
     Label2: TLabel;
     CHB_KeepAlive: TCheckBox;
     CHB_PingLogging: TCheckBox;
+    Label3: TLabel;
+    CB_Loglevel: TComboBox;
     procedure B_ClearLogClick(Sender: TObject);
     procedure LV_LogChange(Sender: TObject; Item: TListItem;
       Change: TItemChange);
     procedure LV_LogCustomDrawItem(Sender: TCustomListView; Item: TListItem;
       State: TCustomDrawState; var DefaultDraw: Boolean);
-    procedure B_SendClick(Sender: TObject);
-    procedure E_SendKeyPress(Sender: TObject; var Key: Char);
     procedure M_DataChange(Sender: TObject);
-    procedure CHB_DataLoggingClick(Sender: TObject);
     procedure CHB_KeepAliveClick(Sender: TObject);
+    procedure CB_LoglevelChange(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
   public
-    procedure Log(msg: string);
+    procedure Log(msg: string; lvl: TuLILogLevel);
   end;
 
 var
@@ -41,7 +38,7 @@ var
 
 implementation
 
-uses tUltimateLI, tUltimateLIConst;
+uses tUltimateLI;
 
 {$R *.dfm}
 
@@ -84,17 +81,9 @@ begin
   Self.L_len.Caption := IntToStr(len div 1000) + ' ' + IntToStr(len mod 1000);
 end;
 
-procedure TF_Debug.B_SendClick(Sender: TObject);
+procedure TF_Debug.CB_LoglevelChange(Sender: TObject);
 begin
-  Self.E_Send.Text := '';
-end;
-
-procedure TF_Debug.CHB_DataLoggingClick(Sender: TObject);
-begin
-  if (Self.CHB_DataLogging.Checked) then
-    uLI.logLevel := tllDetail
-  else
-    uLI.logLevel := tllNo;
+  uLI.logLevel := TuLILogLevel(Self.CB_Loglevel.ItemIndex);
 end;
 
 procedure TF_Debug.CHB_KeepAliveClick(Sender: TObject);
@@ -102,28 +91,27 @@ begin
   uLI.ignoreKeepAliveLogging := not Self.CHB_KeepAlive.Checked;
 end;
 
-procedure TF_Debug.E_SendKeyPress(Sender: TObject; var Key: Char);
+procedure TF_Debug.FormDestroy(Sender: TObject);
 begin
-  if (Key = #13) then
-    Self.B_SendClick(Self);
+  F_Debug := nil;
 end;
 
-procedure TF_Debug.Log(msg: string);
-var
-  LI: TListItem;
+procedure TF_Debug.Log(msg: string; lvl: TuLILogLevel);
 begin
-  if (not Assigned(Self.CHB_DataLogging)) then
+  if (F_Debug = nil) then
     Exit();
+
+  if (lvl > TuLILogLevel(Self.CB_Loglevel.ItemIndex)) then
+    Exit();
+
   if ((not Self.CHB_PingLogging.Checked) and ((ContainsStr(msg, '-;PING')) or
     (ContainsStr(msg, '-;PONG')))) then
     Exit();
 
-  if (not Self.CHB_DataLogging.Checked) then
-    Exit();
   if (Self.LV_Log.Items.Count > 200) then
     Self.LV_Log.Clear();
 
-  LI := Self.LV_Log.Items.Insert(0);
+  var LI := Self.LV_Log.Items.Insert(0);
   LI.Caption := FormatDateTime('hh:nn:ss,zzz', Now);
   LI.SubItems.Add(msg);
 end;

@@ -4,7 +4,7 @@ object F_Debug: TF_Debug
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Debug'
-  ClientHeight = 537
+  ClientHeight = 474
   ClientWidth = 616
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -12,6 +12,7 @@ object F_Debug: TF_Debug
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  OnDestroy = FormDestroy
   TextHeight = 13
   object Label1: TLabel
     Left = 424
@@ -35,14 +36,12 @@ object F_Debug: TF_Debug
     Height = 13
     Caption = 'znak'#367
   end
-  object CHB_DataLogging: TCheckBox
+  object Label3: TLabel
     Left = 8
     Top = 8
-    Width = 89
-    Height = 17
-    Caption = 'Logovat data'
-    TabOrder = 0
-    OnClick = CHB_DataLoggingClick
+    Width = 43
+    Height = 13
+    Caption = 'Loglevel:'
   end
   object LV_Log: TListView
     Left = 8
@@ -66,9 +65,9 @@ object F_Debug: TF_Debug
     OnCustomDrawItem = LV_LogCustomDrawItem
   end
   object M_Data: TMemo
-    Left = 10
+    Left = 8
     Top = 309
-    Width = 598
+    Width = 600
     Height = 140
     ReadOnly = True
     TabOrder = 5
@@ -83,33 +82,8 @@ object F_Debug: TF_Debug
     TabOrder = 3
     OnClick = B_ClearLogClick
   end
-  object GB_SendData: TGroupBox
-    Left = 8
-    Top = 472
-    Width = 598
-    Height = 57
-    Caption = ' Odeslat data '
-    TabOrder = 6
-    object E_Send: TEdit
-      Left = 16
-      Top = 24
-      Width = 490
-      Height = 21
-      TabOrder = 0
-      OnKeyPress = E_SendKeyPress
-    end
-    object B_Send: TButton
-      Left = 512
-      Top = 23
-      Width = 75
-      Height = 22
-      Caption = 'Odeslat'
-      TabOrder = 1
-      OnClick = B_SendClick
-    end
-  end
   object CHB_KeepAlive: TCheckBox
-    Left = 103
+    Left = 214
     Top = 8
     Width = 113
     Height = 17
@@ -118,12 +92,30 @@ object F_Debug: TF_Debug
     OnClick = CHB_KeepAliveClick
   end
   object CHB_PingLogging: TCheckBox
-    Left = 222
+    Left = 333
     Top = 8
     Width = 82
     Height = 17
     Caption = 'Logovat ping'
     TabOrder = 2
     OnClick = CHB_KeepAliveClick
+  end
+  object CB_Loglevel: TComboBox
+    Left = 57
+    Top = 4
+    Width = 145
+    Height = 21
+    Style = csDropDownList
+    ItemIndex = 2
+    TabOrder = 0
+    Text = 'varov'#225'n'#237
+    OnChange = CB_LoglevelChange
+    Items.Strings = (
+      'nic'
+      'chyby'
+      'varov'#225'n'#237
+      'informace'
+      'data'
+      'debug')
   end
 end

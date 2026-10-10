@@ -163,7 +163,6 @@ begin
       if (arg = '-l') then
       begin
         F_Debug.Show();
-        F_Debug.CHB_DataLogging.Checked := True;
       end;
 
       Inc(i);
