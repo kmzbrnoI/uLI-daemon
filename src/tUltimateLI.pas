@@ -58,7 +58,7 @@ type
     _CMD_DCC_OFF: ShortString = #$61#$00;
     _CMD_DCC_STOP: ShortString = #$81#$00;
 
-    _KEEP_ALIVE: array [0 .. 3] of Byte = ($A0, $01, $05, $04);
+    _KEEP_ALIVE: Byte = $05;
 
   public const
     _SLOTS_CNT = 6;
@@ -103,22 +103,24 @@ type
     procedure ComRxChar(Sender: TObject; Count: Integer);
 
     procedure CheckFbufInTimeout();
-    procedure ParseComMsg(var msg: TBuffer);
-    procedure ParseDeviceMsg(deviceAddr: Byte; var msg: TBuffer);
-    procedure ParseuLIMsg(var msg: TBuffer);
-    procedure ParseuLIStatus(var msg: TBuffer);
+    procedure ParseComMsg(callByte: Byte; headerByte: Byte; msg: PByte; msgLen: Cardinal);
+    procedure ParseDeviceMsg(deviceAddr: Byte; headerByte: Byte; msg: PByte; msgLen: Cardinal);
+    procedure ParseuLIMsg(headerByte: Byte; msg: PByte; msgLen: Cardinal);
+    procedure ParseuLIStatus(msg: PByte; msgLen: Cardinal);
 
     procedure WriteLog(lvl: TuLILogLevel; msg: string);
 
-    procedure Send(data: TBuffer);
+    procedure Send(callByte: Byte; data: ShortString);
+    procedure SendXN(device: Byte; data: ShortString);
+    procedure SenduLI(data: ShortString);
     procedure SendKeepAlive();
     procedure SendStatusRequest();
-    function  CheckAddrChangeOK(callByte: Byte; addr: Integer): Boolean;
-    procedure SendLocoData(callByte: Byte; addr: Integer);
-    procedure SendLocoFunc13(callByte: Byte; addr: Integer);
-    procedure SendLocoFuncType(callByte: Byte; addr: Integer);
-    procedure SendLocoFunc13Type(callByte: Byte; addr: Integer);
-    procedure SendNotSupported(callByte: Byte);
+    function  CheckAddrChangeOK(deviceAddr: Byte; addr: Integer): Boolean;
+    procedure SendLocoData(deviceAddr: Byte; addr: Integer);
+    procedure SendLocoFunc13(deviceAddr: Byte; addr: Integer);
+    procedure SendLocoFuncType(deviceAddr: Byte; addr: Integer);
+    procedure SendLocoFunc13Type(deviceAddr: Byte; addr: Integer);
+    procedure SendNotSupported(deviceAddr: Byte);
 
     procedure SetLogLevel(new: TuLILogLevel);
 
@@ -140,8 +142,11 @@ type
     procedure SetUsartMsgTimeoutCnt(new: Cardinal);
 
     function Parity(b: Byte): Boolean;
-    function Xorxor(data: array of Byte; from: Cardinal; len: Cardinal): Byte;
-    function BufToStr(data: array of Byte; from: Cardinal; len: Cardinal): string;
+    function Xorxor(data: array of Byte; from: Cardinal; len: Cardinal): Byte; overload;
+    function Xorxor(data: ShortString): Byte; overload;
+    function BufToStr(data: ShortString): string; overload;
+    function BufToStr(data: PByte; len: Cardinal): string; overload;
+    function BufToStr(data: PByte; from: Cardinal; len: Cardinal): string; overload;
 
     property fusartMsgTotalCnt: Cardinal read ffusartMsgTotalCnt
       write SetUsartMsgTotalCnt;
@@ -161,9 +166,9 @@ type
 
     procedure EnumDevices(const Ports: TStringList);
 
-    procedure SendLokoStolen(callByte: Byte; addrHi: Byte;
+    procedure SendLokoStolen(deviceAddr: Byte; addrHi: Byte;
       addrLo: Byte); overload;
-    procedure SendLokoStolen(callByte: Byte; addr: Word); overload;
+    procedure SendLokoStolen(deviceAddr: Byte; addr: Word); overload;
 
     procedure SetStatus(new: TuLIStatus);
 
@@ -306,7 +311,7 @@ begin
 
   // uLI version request
   Self.WriteLog(tllCommands, 'SEND: version request');
-  Self.Send(CreateBuf(ShortString(#$A0 + #$11 + #$80)));
+  Self.SenduLI(#$11 + #$80);
 end;
 
 procedure TuLI.ComBeforeClose(Sender: TObject);
@@ -421,80 +426,90 @@ begin
   Fbuf_in_timeout := Now + EncodeTime(0, 0, _BUF_IN_TIMEOUT_MS div 1000, _BUF_IN_TIMEOUT_MS mod 1000);
 
   if (Self.logLevel >= tllDetail) then
-    WriteLog(tllDetail, 'BUF: '+Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
+    WriteLog(tllDetail, 'BUF: '+Self.BufToStr(@Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
 
-  var ok := true;
-  while (ok) do
+  var msgStartI: Integer := 0;
+
+  while (msgStartI < Self.Fbuf_in.Count) do
   begin
-    if (Fbuf_in.Count >= 2) then
+    const msgAvailableBytes: Integer = Self.Fbuf_in.Count-msgStartI;
+
+    if (Self.Fbuf_in.data[msgStartI] <> $51) then
     begin
-      // msg_len is length with all bytes (call, header, data, xor)
-      var msg_len := (Fbuf_in.data[1] AND $0F) + 3;
-      if (msg_len <= Fbuf_in.Count) then
-      begin
-        // check first byte parity
-        if (not Self.Parity(Fbuf_in.data[0])) then
-        begin
-          // parity ok -> check xor
-          var rxor: Byte := Self.Xorxor(Fbuf_in.data, 1, msg_len);
-          if (rxor = 0) then
-          begin
-            // parse one message
-            var tmp := Fbuf_in.Count;
-            Fbuf_in.Count := msg_len;
-            Self.ParseComMsg(Fbuf_in);
-            Fbuf_in.Count := tmp;
-          end
-          else
-          begin
-            // xor error
-            WriteLog(tllErrors, 'GET: XOR ERROR, removing buffer : ' + Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
-          end;
-        end
-        else
-        begin
-          // parity error
-          WriteLog(tllErrors, 'GET: PARITY ERROR, removing buffer : ' + Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
-        end;
+      msgStartI := msgStartI + 1;
+      continue;
+    end;
 
-        // TODO: send "transfer errors" ???
+    if (msgAvailableBytes < 2) then
+      break; // wait for next data
 
-        // remove message from buffer
-        for var i := 0 to Fbuf_in.Count - msg_len - 1 do
-          Fbuf_in.data[i] := Fbuf_in.data[i + msg_len];
-        Fbuf_in.Count := Fbuf_in.Count - msg_len;
+    if (Self.Fbuf_in.data[msgStartI+1] <> $15) then
+    begin
+      msgStartI := msgStartI + 1;
+      continue;
+    end;
 
-        if ((Self.logLevel >= tllDetail) and (Fbuf_in.Count > 0)) then
-          WriteLog(tllDetail, 'BUF: '+Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
+    if (msgAvailableBytes < 3) then
+      break; // wait for next data
 
-      end
-      else
-        ok := false;
-    end
-    else
-      ok := false;
+    // check parity of Call byte
+    const callByte: Byte = Self.Fbuf_in.data[msgStartI+2];
+    if (Self.Parity(callByte)) then
+    begin
+      msgStartI := msgStartI + 1;
+      WriteLog(tllErrors, 'GET: PARITY ERROR');
+      continue;
+    end;
+
+    if (msgAvailableBytes < 4) then
+      break; // wait for next data
+
+    const headerByte: Byte = Self.Fbuf_in.data[msgStartI+3];
+    const msgLen = (headerByte AND $0F) + 5;
+
+    if (msgAvailableBytes < msgLen) then
+      break; // wait for next data
+
+    // check xor of whole message
+    var rxor: Byte := Self.Xorxor(Self.Fbuf_in.data, msgStartI+3, msgLen-3);
+    if (rxor <> 0) then
+    begin
+      WriteLog(tllErrors, 'GET: XOR ERROR: ' + Self.BufToStr(@Self.Fbuf_in.data, msgStartI, msgLen));
+      msgStartI := msgStartI + msgLen; // ignore whole message
+      break;
+    end;
+
+    // message ok -> parse
+    Self.ParseComMsg(callByte, headerByte, @Self.Fbuf_in.data[msgStartI+4], msgLen-5);
+
+    msgStartI := msgStartI + msgLen;
   end; // while
+
+  // remove processed data from Fbuf_in
+  if (msgStartI > 0) then
+  begin
+    for var i := 0 to Fbuf_in.Count - msgStartI - 1 do
+      Fbuf_in.data[i] := Fbuf_in.data[i + msgStartI];
+    Fbuf_in.Count := Fbuf_in.Count - msgStartI;
+  end;
+
+  if ((Self.logLevel >= tllDetail) and (Fbuf_in.Count > 0)) then
+    WriteLog(tllDetail, 'BUF: '+Self.BufToStr(@Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.ParseComMsg(var msg: TBuffer);
+procedure TuLI.ParseComMsg(callByte: Byte; headerByte: Byte; msg: PByte; msgLen: Cardinal);
 begin
-  if ((not Self.ignoreKeepAliveLogging) or (msg.Count <> 4) or
-    (not CompareMem(@msg.data, @_KEEP_ALIVE, 4))) then
-  begin
-    var s := '';
-    for var i := 0 to msg.Count - 1 do
-      s := s + IntToHex(msg.data[i], 2) + ' ';
-    Self.WriteLog(tllData, 'GET: ' + s);
-  end;
+  if ((not Self.ignoreKeepAliveLogging) or (msgLen <> 1) or (callByte <> $A0) or (msg[0] <> _KEEP_ALIVE)) then
+    Self.WriteLog(tllData, 'GET: 51 15 ' + IntToHex(ord(callByte), 2) + ' ' + IntToHex(ord(headerByte), 2) + ' ' + Self.BufToStr(msg, msgLen));
 
   try
-    var target := (msg.data[0] shr 5) AND 3;
+    var target := (callByte shr 5) AND 3;
     if (target = 3) then
-      Self.ParseDeviceMsg((msg.data[0] AND $1F), msg)
+      Self.ParseDeviceMsg((callByte AND $1F), headerByte, msg, msgLen)
     else if (target = 1) then
-      Self.ParseuLIMsg(msg)
+      Self.ParseuLIMsg(headerByte, msg, msgLen)
   except
 
   end;
@@ -502,30 +517,28 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.ParseDeviceMsg(deviceAddr: Byte; var msg: TBuffer);
+procedure TuLI.ParseDeviceMsg(deviceAddr: Byte; headerByte: Byte; msg: PByte; msgLen: Cardinal);
 begin
   Self.fusartMsgTotalCnt := Self.fusartMsgTotalCnt + 1;
 
-  case (msg.data[1]) of
+  case (headerByte) of
     $21:
       begin
-        case (msg.data[2]) of
+        case (msg[0]) of
           $21:
             begin
               Self.WriteLog(tllCommands,
                 'GET: command station software version request');
               Self.WriteLog(tllCommands,
                 'SEND: command station software version');
-              Self.Send(CreateBuf(ShortString(chr(msg.data[0]) + #$63 + #$21 +
-                #$36 + #$00)));
+              Self.SendXN(deviceAddr, #$63 + #$21 + #$36 + #$00);
             end;
 
           $24:
             begin
               Self.WriteLog(tllCommands, 'GET: command station status request');
               Self.WriteLog(tllCommands, 'SEND: command station status');
-              Self.Send(CreateBuf(ShortString(chr(msg.data[0]) + #$62 + #$22 +
-                (char(not Self.DCC)))));
+              Self.SendXN(deviceAddr, #$62 + #$22 + (char(not Self.DCC)));
             end;
 
           $81:
@@ -533,12 +546,12 @@ begin
               Self.WriteLog(tllCommands, 'GET: resume operations request');
 
               Self.WriteLog(tllCommands, 'PUT: GO');
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+              Self.SendXN(deviceAddr, _CMD_DCC_ON);
+              Self.SendXN(deviceAddr, _CMD_DCC_ON);
 
               Self.WriteLog(tllCommands, 'PUT: STOP');
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
+              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
+              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
             end;
 
           $80:
@@ -546,19 +559,19 @@ begin
               Self.WriteLog(tllCommands, 'GET: STOP operations request');
 
               // zastavit hnaci vozidlo
-              var i := Self.FindSlot(msg.data[0] AND $1F);
+              var i := Self.FindSlot(deviceAddr);
               if ((i > -1) and (Self.sloty[i].isLoko)) then
                 Self.sloty[i].STOPloko();
 
               Self.WriteLog(tllCommands, 'PUT: STOP');
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_OFF));
+              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
+              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
               Self.WriteLog(tllCommands, 'PUT: GO');
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
-              Self.Send(CreateBuf(AnsiChar(msg.data[0]) + _CMD_DCC_ON));
+              Self.SendXN(deviceAddr, _CMD_DCC_ON);
+              Self.SendXN(deviceAddr, _CMD_DCC_ON);
             end;
         else
-          Self.SendNotSupported(msg.data[0]);
+          Self.SendNotSupported(deviceAddr);
         end; // case msg.data[2]
       end; // $21
 
@@ -569,39 +582,38 @@ begin
           'GET: Accessory Decoder information request');
         Self.WriteLog(tllCommands,
           'PUT: Default Accessory Decoder information');
-        msg.data[3] := $20 + ((msg.data[3] and 1) shl 4);
-        msg.Count := 4;
-        Self.Send(msg);
+        var data2: Byte := $20 + ((msg[1] and 1) shl 4);
+        Self.SendXN(deviceAddr, #$42 + AnsiChar(msg[0]) + AnsiChar(data2));
       end; // $42
 
     $80:
       begin
         // stop all (power on)
         Self.WriteLog(tllCommands, 'GET: STOP ALL LOKS');
-        var slot := Self.FindSlot(msg.data[0] AND $1F);
+        var slot := Self.FindSlot(deviceAddr);
         if (slot > 0) then
           Self.sloty[slot].ReleaseLoko();
 
         Self.WriteLog(tllCommands, 'PUT: 3x STOP');
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_STOP));
+        Self.SendXN(0, _CMD_DCC_STOP);
+        Self.SendXN(0, _CMD_DCC_STOP);
+        Self.SendXN(0, _CMD_DCC_STOP);
 
         Self.WriteLog(tllCommands, 'PUT: 3x GO');
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-        Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
+        Self.SendXN(0, _CMD_DCC_ON);
+        Self.SendXN(0, _CMD_DCC_ON);
+        Self.SendXN(0, _CMD_DCC_ON);
       end;
     $92:
       begin
         // e-stop one loco
-        var addr := Self.LokAddrDecode(msg.data[2], msg.data[3]);
+        var addr := Self.LokAddrDecode(msg[0], msg[1]);
         if (((addr >= 1) and (addr <= _SLOTS_CNT)) and
-          ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
+          (deviceAddr <> Self.sloty[addr].mausId)) then
         begin
           if (Self.sloty[addr].isMaus) then
-            Self.SendLokoStolen(CalcParity(Self.sloty[addr].mausId + $60), addr);
-          Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+            Self.SendLokoStolen(deviceAddr, addr);
+          Self.sloty[addr].mausId := deviceAddr;
         end;
         if ((addr > 0) or (addr <= _SLOTS_CNT) or (Self.sloty[addr].isLoko)) then
           if (Self.sloty[addr].total) then
@@ -610,43 +622,43 @@ begin
 
     $E3:
       begin
-        case (msg.data[2]) of
+        case (msg[0]) of
           00:
             begin
               Self.WriteLog(tllCommands, 'GET: locomotive information request');
-              Self.SendLocoData(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
+              Self.SendLocoData(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           07:
             begin
               Self.WriteLog(tllCommands, 'GET: function status F0-F12 request (>=3.0)');
-              Self.SendLocoFuncType(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
+              Self.SendLocoFuncType(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           08:
             begin
               Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
-              Self.SendLocoFunc13Type(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
+              Self.SendLocoFunc13Type(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           09:
             begin
               Self.WriteLog(tllCommands, 'GET: function status F13-F28 request (>=3.6)');
-              Self.SendLocoFunc13(msg.data[0], Self.LokAddrDecode(msg.data[3], msg.data[4]));
+              Self.SendLocoFunc13(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           else
-            Self.SendNotSupported(msg.data[0]);
+            Self.SendNotSupported(deviceAddr);
         end;
       end;
 
     $E4:
       begin
-        case (msg.data[2]) of
+        case (msg[0]) of
           $10 .. $13:
             begin
               Self.WriteLog(tllCommands, 'GET: locomotive set speed');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               var maxsp: Integer;
 
-              case (msg.data[2]) of
+              case (msg[0]) of
                 $10:
                   maxsp := 14;
                 $11:
@@ -664,7 +676,7 @@ begin
               case (maxsp) of
                 14:
                   begin
-                    speed := (msg.data[5] AND $0F);
+                    speed := (msg[3] AND $0F);
                     if (speed = 1) then
                     begin
                       emergencyStop := true;
@@ -677,8 +689,8 @@ begin
 
                 27, 28:
                   begin
-                    speed := ((msg.data[5] AND $0F) shl 1) OR
-                      ((msg.data[5] AND $10) shr 4);
+                    speed := ((msg[3] AND $0F) shl 1) OR
+                      ((msg[3] AND $10) shr 4);
                     if (speed = 2) then
                       emergencyStop := true;
                     if ((speed >= 1) and (speed <= 3)) then
@@ -689,7 +701,7 @@ begin
 
                 128:
                   begin
-                    speed := (msg.data[5] AND $7F);
+                    speed := (msg[3] AND $7F);
                     if (speed = 1) then
                     begin
                       speed := 0;
@@ -699,13 +711,11 @@ begin
                   end;
               end;
 
-              if (((addr >= 1) and (addr <= _SLOTS_CNT)) and
-                ((msg.data[0] AND $1F) <> Self.sloty[addr].mausId)) then
+              if (((addr >= 1) and (addr <= _SLOTS_CNT)) and (deviceAddr <> Self.sloty[addr].mausId)) then
               begin
                 if (Self.sloty[addr].isMaus) then
-                  Self.SendLokoStolen
-                    (CalcParity(Self.sloty[addr].mausId + $60), addr);
-                Self.sloty[addr].mausId := (msg.data[0] AND $1F);
+                  Self.SendLokoStolen(deviceAddr, addr);
+                Self.sloty[addr].mausId := deviceAddr;
               end;
 
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -713,14 +723,13 @@ begin
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
-                  Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, Byte(msg[1]), Byte(msg[2]));
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit rychlost a smer
 
-                var tmpSmer := 1 - ((Byte(msg.data[5]) shr 7) and $1);
+                var tmpSmer := 1 - ((Byte(msg[3]) shr 7) and $1);
                 if (emergencyStop) then
                 begin
                   // emergency stop -> uvolnit HV ze slotu
@@ -733,8 +742,7 @@ begin
                     Self.sloty[addr].SetRychlostSmer(speed, tmpSmer);
                 end;
                 if (not Self.sloty[addr].total) then
-                  Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
-                    Byte(msg.data[4]));
+                  Self.SendLokoStolen(deviceAddr, msg[1], msg[2]);
               end;
 
             end;
@@ -743,22 +751,21 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F0-F4');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
-                  Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, msg[1], msg[2]);
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
                 var funkce: TFunkce;
-                funkce[0] := boolean((msg.data[5] shr 4) and $1);
+                funkce[0] := boolean((msg[3] shr 4) and $1);
                 for var i := 0 to 3 do
-                  funkce[i + 1] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 1] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(0, 4, funkce);
               end;
             end;
@@ -767,21 +774,20 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F5-F8');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
-                  Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, Byte(msg[1]), Byte(msg[2]));
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
                 var funkce: TFunkce;
                 for var i := 0 to 3 do
-                  funkce[i + 5] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 5] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(5, 8, funkce);
               end;
             end;
@@ -790,21 +796,20 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F9-F12');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
                 (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]),
-                  Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, msg[1], msg[2]);
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce\
                 var funkce: TFunkce;
                 for var i := 0 to 3 do
-                  funkce[i + 9] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 9] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(9, 12, funkce);
               end;
             end;
@@ -813,19 +818,19 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F13-F20 (>=3.6)');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, msg[1], msg[2]);
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce\
                 var funkce: TFunkce;
                 for var i := 0 to 7 do
-                  funkce[i + 13] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 13] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(13, 20, funkce);
               end;
             end;
@@ -834,19 +839,19 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F21-F28 (>=3.6)');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, msg[1], msg[2]);
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce\
                 var funkce: TFunkce;
                 for var i := 0 to 7 do
-                  funkce[i + 21] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 21] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(21, 28, funkce);
               end;
             end;
@@ -855,40 +860,40 @@ begin
             begin
               Self.WriteLog(tllCommands, 'GET: set F13-F20');
 
-              var addr := Self.LokAddrDecode(msg.data[3], msg.data[4]);
+              var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
               begin
                 // lokomotiva neni rizena ovladacem
                 // -> odeslat "locomotive is being operated by another device"
-                Self.SendLokoStolen(Byte(msg.data[0]), Byte(msg.data[3]), Byte(msg.data[4]));
+                Self.SendLokoStolen(deviceAddr, Byte(msg[1]), Byte(msg[2]));
               end
               else
               begin
                 // lokomotiva je rizena ovladacem -> nastavit funkce
                 var funkce: TFunkce;
                 for var i := 0 to 7 do
-                  funkce[i + 13] := boolean((msg.data[5] shr i) and $1);
+                  funkce[i + 13] := boolean((msg[3] shr i) and $1);
                 Self.sloty[addr].SetFunctions(13, 20, funkce);
               end;
             end;
         else
-          Self.SendNotSupported(msg.data[0]);
+          Self.SendNotSupported(deviceAddr);
         end; // case msg.data[2]
       end; // $E4
   else
-    Self.SendNotSupported(msg.data[0]);
+    Self.SendNotSupported(deviceAddr);
   end; // case msg.data[1]
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.ParseuLIMsg(var msg: TBuffer);
+procedure TuLI.ParseuLIMsg(headerByte: Byte; msg: PByte; msgLen: Cardinal);
 begin
-  case (msg.data[1]) of
+  case (headerByte) of
     $01:
       begin
         // informative messages
-        case (msg.data[2]) of
+        case (msg[0]) of
           $01:
             begin
               Self.WriteLog(tllErrors, 'ERR: GET: USB incoming data timeout');
@@ -916,7 +921,8 @@ begin
             Self.WriteLog(tllCommands, 'GET: OK');
           $05:
             begin
-              Self.WriteLog(tllChanges, 'GET: keep-alive');
+              if (not Self.ignoreKeepAliveLogging) then
+                Self.WriteLog(tllChanges, 'GET: keep-alive');
               Self.KAreceiveTimeout := 0;
 
               if ((F_Main.P_ULI.Color = clGreen) or
@@ -942,17 +948,21 @@ begin
             end;
           $09:
             begin
-              Self.WriteLog(tllErrors,
-                'ERR: GET: XpressNET power source turned off');
-              F_Main.LogMessage
-                ('uLI-ERR: GET: XpressNET power source turned off');
+              Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power source turned off');
+              F_Main.LogMessage('uLI-ERR: GET: XpressNET power source turned off');
             end;
           $0A:
             begin
-              Self.WriteLog(tllErrors,
-                'ERR: GET: XpressNET power transistor closed');
-              F_Main.LogMessage
-                ('uLI-ERR: GET: XpressNET power transistor closed');
+              Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power transistor closed');
+              F_Main.LogMessage('uLI-ERR: GET: XpressNET power transistor closed');
+            end;
+          $0B:
+            begin
+              Self.WriteLog(tllErrors, 'WARN: GET: Missed timer');
+            end;
+          $0C:
+            begin
+              Self.WriteLog(tllErrors, 'WARN: GET: USART RX Framing error');
             end;
         end;
       end;
@@ -961,7 +971,7 @@ begin
       begin
         // uLI-master status response
         Self.WriteLog(tllCommands, 'GET: master status');
-        Self.ParseuLIStatus(msg);
+        Self.ParseuLIStatus(msg, msgLen);
 
         F_Main.P_ULI.Color := clGreen;
         F_Main.P_ULI.Hint := 'Připojeno k uLI-master, stav vyčten';
@@ -969,12 +979,12 @@ begin
 
     $13:
       begin
-        if (msg.data[2] = $80) then
+        if (msg[0] = $80) then
         begin
-          Self.uLIVersion.hw := IntToStr((msg.data[3] shr 4) AND $F) + '.' +
-            IntToStr(msg.data[3] AND $F);
-          Self.uLIVersion.sw := IntToStr((msg.data[4] shr 4) AND $F) + '.' +
-            IntToStr(msg.data[4] AND $F);
+          Self.uLIVersion.hw := IntToStr((msg[1] shr 4) AND $F) + '.' +
+            IntToStr(msg[1] AND $F);
+          Self.uLIVersion.sw := IntToStr((msg[2] shr 4) AND $F) + '.' +
+            IntToStr(msg[2] AND $F);
           Self.WriteLog(tllCommands, 'GET: uLI version hw:' + Self.uLIVersion.hw
             + ', sw:' + Self.uLIVersion.sw);
 
@@ -985,14 +995,14 @@ begin
   end; // case
 end;
 
-procedure TuLI.ParseuLIStatus(var msg: TBuffer);
+procedure TuLI.ParseuLIStatus(msg: PByte; msgLen: Cardinal);
 var
   new: TuLIStatus;
 begin
-  new.transistor := boolean(msg.data[2] and 1);
-  new.sense := boolean((msg.data[2] shr 1) and 1);
-  new.aliveReceiving := boolean((msg.data[2] shr 2) and 1);
-  new.aliveSending := boolean((msg.data[2] shr 3) and 1);
+  new.transistor := boolean(msg[0] and 1);
+  new.sense := boolean((msg[0] shr 1) and 1);
+  new.aliveReceiving := boolean((msg[0] shr 2) and 1);
+  new.aliveSending := boolean((msg[0] shr 3) and 1);
 
   // prijimani a odesilani schvalne obraceno
   // (v recordu jsou data z pohledu uLI-master, timery jsou z pohledu SW v pocitaci)
@@ -1045,41 +1055,31 @@ end;
 
 // Tato funkce funguje jako blokujici.
 // Z funkce je vyskoceno ven az po odeslani dat (nebo vyjimce).
-// Tato funckce ocekava vstupni data bez XORu na konci (prida ho sama).
-procedure TuLI.Send(data: TBuffer);
+// Tato funckce ocekava vstupni data bez xoru na konci
+procedure TuLI.Send(callByte: Byte; data: ShortString);
 begin
   if (not Self.ComPort.connected) then
   begin
     Self.WriteLog(tllErrors, 'PUT ERR: uLI not connected');
-    Exit;
+    Exit();
   end;
-  if (data.Count > 18) then
+  if (Length(data) > 18) then
   begin
     Self.WriteLog(tllErrors, 'PUT ERR: Message too long');
-    Exit;
+    Exit();
   end;
 
   // xor
-  var x := 0;
-  for var i := 1 to data.Count - 1 do
-    x := x xor data.data[i];
-  Inc(data.Count);
-  data.data[data.Count - 1] := x;
+  var rawData: ShortString := #$51 + #$15 + AnsiChar(callByte) + data + AnsiChar(Self.Xorxor(data));
 
-  // get string for log
-  if ((not Self.ignoreKeepAliveLogging) or (data.Count <> 4) or
-    (not CompareMem(@data.data, @_KEEP_ALIVE, 4))) then
-  begin
-    var log := '';
-    for var i := 0 to data.Count - 1 do
-      log := log + IntToHex(data.data[i], 2) + ' ';
-    Self.WriteLog(tllData, 'PUT: ' + log);
-  end;
+  // log
+  if ((not Self.ignoreKeepAliveLogging) or (callByte <> $A0) or (Length(data) <> 2) or (ord(data[2]) <> _KEEP_ALIVE)) then
+    Self.WriteLog(tllData, 'PUT: ' + Self.BufToStr(rawData));
 
   var asp: PAsync;
   InitAsync(asp);
   try
-    Self.ComPort.WriteAsync(data.data, data.Count, asp);
+    Self.ComPort.WriteAsync(rawData[1], Length(rawData), asp);
     while (not Self.ComPort.IsAsyncCompleted(asp)) do
     begin
       Application.ProcessMessages();
@@ -1096,6 +1096,19 @@ begin
   end;
 
   DoneAsync(asp);
+end;
+
+procedure TuLI.SendXN(device: Byte; data: ShortString);
+begin
+  var callByte: Byte := $60 OR (device AND $1F);
+  if (Self.Parity(callByte)) then
+    callByte := callByte OR $80;
+  Self.Send(callByte, data);
+end;
+
+procedure TuLI.SenduLI(data: ShortString);
+begin
+  Self.Send($A0, data);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1137,13 +1150,11 @@ end { EnumComPorts };
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.SetStatus(new: TuLIStatus);
-var
-  data: Byte;
 begin
   Self.WriteLog(tllCommands, 'PUT: status');
-  data := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
+  var data: Byte := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
     (Integer(new.aliveSending) shl 3);
-  Self.Send(CreateBuf(ShortString(#$A0 + #$11 + AnsiChar(data))));
+  Self.SenduLI(#$11 + AnsiChar(data));
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1178,26 +1189,27 @@ end;
 
 procedure TuLI.SendKeepAlive();
 begin
-  Self.WriteLog(tllChanges, 'SEND: keep-alive');
-  Self.Send(CreateBuf(#$A0 + #$01 + #$05));
+  if (not Self.ignoreKeepAliveLogging) then
+    Self.WriteLog(tllChanges, 'SEND: keep-alive');
+  Self.SenduLI(#$01 + #$05);
 end;
 
 procedure TuLI.SendStatusRequest();
 begin
   Self.WriteLog(tllChanges, 'SEND: status request');
-  Self.Send(CreateBuf(#$A0 + #$11 + #$A2));
+  Self.SenduLI(#$11 + #$A2);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-function TuLi.CheckAddrChangeOK(callByte: Byte; addr: Integer): Boolean;
+function TuLi.CheckAddrChangeOK(deviceAddr: Byte; addr: Integer): Boolean;
 var
   changed: boolean;
 begin
   changed := false;
 
   // kontrola adresdy loko/slotu na danem ovladaci
-  var addrOld := Self.FindSlot(callByte AND $1F);
+  var addrOld := Self.FindSlot(deviceAddr);
   if ((addrOld > -1) and (addrOld <> addr)) then
   begin
     // na ovladaci doslo ke zmene adresy z addrOld na addr
@@ -1212,7 +1224,7 @@ begin
   then
   begin
     // obsazujeme slot adresou
-    Self.sloty[addr].mausId := (callByte AND $1F);
+    Self.sloty[addr].mausId := deviceAddr;
     changed := true;
   end;
 
@@ -1228,17 +1240,17 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoData(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoData(deviceAddr: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
-  toSend := AnsiChar(callByte) + #$E4;
+  toSend := #$E4;
 
-  if (CheckAddrChangeOK(callByte, addr)) then
+  if (CheckAddrChangeOK(deviceAddr, addr)) then
   begin
     // lokomotiva je rizena ovladacem
     toSend := toSend + AnsiChar
-      (2 + (Byte(Self.sloty[addr].mausId <> (callByte AND $1F)) shl 3));
+      (2 + (Byte(Self.sloty[addr].mausId <> deviceAddr) shl 3));
 
     // rychlost + smer
     begin
@@ -1284,21 +1296,21 @@ begin
     Self.WriteLog(tllCommands, 'PUT: locomotive is busy - empty slot');
     toSend := toSend + #$A + #$80 + #0 + #0;
   end;
-  Self.Send(CreateBuf(toSend));
 
+  Self.SendXN(deviceAddr, toSend);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoFunc13(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoFunc13(deviceAddr: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
-  toSend := AnsiChar(callByte) + #$E4;
+  toSend := #$E4;
   // Kennung (static)
   toSend := toSend + #$52;
 
-  if (CheckAddrChangeOK(callByte, addr)) then
+  if (CheckAddrChangeOK(deviceAddr, addr)) then
   begin
     // lokomotiva je rizena ovladacem
 
@@ -1328,20 +1340,19 @@ begin
     toSend := toSend + #$00 + #$00 + #$03;
     Self.WriteLog(tllCommands, 'PUT: function F13-F28 information empty');
   end;
-  Self.Send(CreateBuf(toSend));
+
+  Self.SendXN(deviceAddr, toSend);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoFuncType(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoFuncType(deviceAddr: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
-  toSend := AnsiChar(callByte) + #$E3;
-  // Kennung (static)
-  toSend := toSend + #$50;
+  toSend := #$E3 + #$50;
 
-  if (CheckAddrChangeOK(callByte, addr)) then
+  if (CheckAddrChangeOK(deviceAddr, addr)) then
   begin
     // lokomotiva je rizena ovladacem
 
@@ -1368,20 +1379,19 @@ begin
     toSend := toSend + #$00 + #$00;
     Self.WriteLog(tllCommands, 'PUT: function F0-F12 momentary information empty');
   end;
-  Self.Send(CreateBuf(toSend));
+
+  Self.SendXN(deviceAddr, toSend);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLocoFunc13Type(callByte: Byte; addr: Integer);
+procedure TuLI.SendLocoFunc13Type(deviceAddr: Byte; addr: Integer);
 var
   toSend: ShortString;
 begin
-  toSend := AnsiChar(callByte) + #$E4;
-  // Kennung (static)
-  toSend := toSend + #$51;
+  toSend := #$E4 + #$51;
 
-  if (CheckAddrChangeOK(callByte, addr)) then
+  if (CheckAddrChangeOK(deviceAddr, addr)) then
   begin
     // lokomotiva je rizena ovladacem
 
@@ -1411,19 +1421,16 @@ begin
     Self.WriteLog(tllCommands, 'PUT: function F13-F28 momentary information empty');
     toSend := toSend + #$00 + #$00 + #$03;
   end;
-  Self.Send(CreateBuf(toSend));
+
+  Self.SendXN(deviceAddr, toSend);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendNotSupported(callByte: Byte);
-var
-  toSend: ShortString;
+procedure TuLI.SendNotSupported(deviceAddr: Byte);
 begin
-  toSend := AnsiChar(callByte);
-  toSend := toSend + #$61 + #$82;
   Self.WriteLog(tllCommands, 'PUT: command not supported');
-  Self.Send(CreateBuf(toSend));
+  Self.SendXN(deviceAddr, #$61 + #$82);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1463,13 +1470,13 @@ begin
   begin
     if (new) then
     begin
-      Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
-      Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_ON));
+      Self.SendXN(0, _CMD_DCC_ON);
+      Self.SendXN(0, _CMD_DCC_ON);
     end
     else
     begin
-      Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF));
-      Self.Send(CreateBuf(_BROADCAST_HEADER + _CMD_DCC_OFF));
+      Self.SendXN(0, _CMD_DCC_OFF);
+      Self.SendXN(0, _CMD_DCC_OFF);
     end;
   end;
 end;
@@ -1497,20 +1504,16 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TuLI.SendLokoStolen(callByte: Byte; addrHi: Byte; addrLo: Byte);
+procedure TuLI.SendLokoStolen(deviceAddr: Byte; addrHi: Byte; addrLo: Byte);
 begin
-  Self.WriteLog(tllCommands,
-    'PUT: locomotive is being operated by another device');
-  Self.Send(CreateBuf(AnsiChar(callByte) + #$E3 + #$40 + AnsiChar(addrHi) +
-    AnsiChar(addrLo)));
+  Self.WriteLog(tllCommands, 'PUT: locomotive is being operated by another device');
+  Self.SendXN(deviceAddr, #$E3 + #$40 + AnsiChar(addrHi) + AnsiChar(addrLo));
 end;
 
-procedure TuLI.SendLokoStolen(callByte: Byte; addr: Word);
-var
-  encoded: Word;
+procedure TuLI.SendLokoStolen(deviceAddr: Byte; addr: Word);
 begin
-  encoded := Self.LokAddrEncode(addr);
-  Self.SendLokoStolen(callByte, (encoded shr 8) and $FF, encoded AND $FF);
+  var encoded: Word := Self.LokAddrEncode(addr);
+  Self.SendLokoStolen(deviceAddr, (encoded shr 8) and $FF, encoded AND $FF);
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -1658,13 +1661,36 @@ begin
     Result := Result xor data[i];
 end;
 
-function TuLI.BufToStr(data: array of Byte; from: Cardinal; len: Cardinal): string;
+function TuLI.Xorxor(data: ShortString): Byte;
+begin
+  Result := 0;
+  for var i: Cardinal := 1 to Length(data) do
+    Result := Result xor ord(data[i]);
+end;
+
+function TuLI.BufToStr(data: PByte; from: Cardinal; len: Cardinal): string;
 begin
   Result := '';
   for var i := from to from+len-1 do
   begin
     Result := Result + IntToHex(Fbuf_in.data[i], 2);
     if (i < (from+len-1)) then
+      Result := Result + ' ';
+  end;
+end;
+
+function TuLI.BufToStr(data: PByte; len: Cardinal): string;
+begin
+  Result := Self.BufToStr(data, 0, len);
+end;
+
+function TuLI.BufToStr(data: ShortString): string;
+begin
+  Result := '';
+  for var i := 1 to Length(data) do
+  begin
+    Result := Result + IntToHex(ord(data[i]), 2);
+    if (i < Length(data)) then
       Result := Result + ' ';
   end;
 end;

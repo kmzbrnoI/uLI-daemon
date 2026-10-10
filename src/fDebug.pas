@@ -92,7 +92,7 @@ end;
 procedure TF_Debug.CHB_DataLoggingClick(Sender: TObject);
 begin
   if (Self.CHB_DataLogging.Checked) then
-    uLI.logLevel := tllData
+    uLI.logLevel := tllDetail
   else
     uLI.logLevel := tllNo;
 end;
