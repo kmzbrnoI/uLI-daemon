@@ -3,7 +3,7 @@
         <ProjectGuid>{49B00A44-ED8C-4C34-8D77-61104754BC6C}</ProjectGuid>
         <ProjectVersion>20.1</ProjectVersion>
         <MainSource>uLIdaemon.dpr</MainSource>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>

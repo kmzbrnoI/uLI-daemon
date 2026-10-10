@@ -139,6 +139,10 @@ type
     procedure SetUsartMsgTotalCnt(new: Cardinal);
     procedure SetUsartMsgTimeoutCnt(new: Cardinal);
 
+    function Parity(b: Byte): Boolean;
+    function Xorxor(data: array of Byte; from: Cardinal; len: Cardinal): Byte;
+    function BufToStr(data: array of Byte; from: Cardinal; len: Cardinal): string;
+
     property fusartMsgTotalCnt: Cardinal read ffusartMsgTotalCnt
       write SetUsartMsgTotalCnt;
     property fusartMsgTimeoutCnt: Cardinal read ffusartMsgTimeoutCnt
@@ -406,27 +410,18 @@ end;
 /// /////////////////////////////////////////////////////////////////////////////
 
 procedure TuLI.ComRxChar(Sender: TObject; Count: Integer);
-var
-  Buf: array [0 .. 255] of Byte;
 begin
   // check timeout
   Self.CheckFbufInTimeout();
 
-  Self.ComPort.Read(Buf, Min(Count, 256));
+  const freeSpace: Integer = Length(Fbuf_in.data)-Fbuf_in.Count;
+  var readBytes: Integer := Self.ComPort.Read(Fbuf_in.data[Fbuf_in.Count], Min(Count, freeSpace));
 
-  for var i := 0 to Count - 1 do
-    Fbuf_in.data[Fbuf_in.Count + i] := Buf[i];
-  Fbuf_in.Count := Fbuf_in.Count + Count;
-  Fbuf_in_timeout := Now + EncodeTime(0, 0, _BUF_IN_TIMEOUT_MS div 1000,
-    _BUF_IN_TIMEOUT_MS mod 1000);
+  Fbuf_in.Count := Fbuf_in.Count + readBytes;
+  Fbuf_in_timeout := Now + EncodeTime(0, 0, _BUF_IN_TIMEOUT_MS div 1000, _BUF_IN_TIMEOUT_MS mod 1000);
 
   if (Self.logLevel >= tllDetail) then
-  begin
-    var s := 'BUF: ';
-    for var i := 0 to Fbuf_in.Count - 1 do
-      s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
-    WriteLog(tllDetail, s);
-  end;
+    WriteLog(tllDetail, 'BUF: '+Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
 
   var ok := true;
   while (ok) do
@@ -438,23 +433,11 @@ begin
       if (msg_len <= Fbuf_in.Count) then
       begin
         // check first byte parity
-        var x := Fbuf_in.data[0];
-        var parity := false;
-        for var i := 0 to 7 do
-        begin
-          if ((x AND 1) = 1) then
-            parity := not parity;
-          x := x shr 1;
-        end;
-
-        if (not parity) then
+        if (not Self.Parity(Fbuf_in.data[0])) then
         begin
           // parity ok -> check xor
-          x := 0;
-          for var i := 1 to msg_len - 2 do
-            x := x xor Fbuf_in.data[i];
-
-          if (x = Fbuf_in.data[msg_len - 1]) then
+          var rxor: Byte := Self.Xorxor(Fbuf_in.data, 1, msg_len);
+          if (rxor = 0) then
           begin
             // parse one message
             var tmp := Fbuf_in.Count;
@@ -465,19 +448,13 @@ begin
           else
           begin
             // xor error
-            var s := '';
-            for var i := 0 to Fbuf_in.Count - 1 do
-              s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
-            WriteLog(tllErrors, 'GET: XOR ERROR, removing buffer : ' + s);
+            WriteLog(tllErrors, 'GET: XOR ERROR, removing buffer : ' + Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
           end;
         end
         else
         begin
           // parity error
-          var s := '';
-          for var i := 0 to Fbuf_in.Count - 1 do
-            s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
-          WriteLog(tllErrors, 'GET: PARITY ERROR, removing buffer : ' + s);
+          WriteLog(tllErrors, 'GET: PARITY ERROR, removing buffer : ' + Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
         end;
 
         // TODO: send "transfer errors" ???
@@ -487,14 +464,8 @@ begin
           Fbuf_in.data[i] := Fbuf_in.data[i + msg_len];
         Fbuf_in.Count := Fbuf_in.Count - msg_len;
 
-        if (Self.logLevel >= tllDetail) then
-        begin
-          var s := 'BUF: ';
-          for var i := 0 to Fbuf_in.Count - 1 do
-            s := s + IntToHex(Fbuf_in.data[i], 2) + ' ';
-          if (Fbuf_in.Count > 0) then
-            WriteLog(tllDetail, s);
-        end;
+        if ((Self.logLevel >= tllDetail) and (Fbuf_in.Count > 0)) then
+          WriteLog(tllDetail, 'BUF: '+Self.BufToStr(Self.Fbuf_in.data, 0, Self.Fbuf_in.Count));
 
       end
       else
@@ -1665,6 +1636,37 @@ procedure TuLI.ResetUsartCounters();
 begin
   Self.ffusartMsgTotalCnt := 0; // will not cause an event to fire
   Self.fusartMsgTimeoutCnt := 0; // will cause an event to fire
+end;
+
+/// /////////////////////////////////////////////////////////////////////////////
+
+function TuLI.Parity(b: Byte): Boolean;
+begin
+  Result := False;
+  for var i := 0 to 7 do
+  begin
+    if ((b AND 1) = 1) then
+      Result := not Result;
+    b := b shr 1;
+  end;
+end;
+
+function TuLI.Xorxor(data: array of Byte; from: Cardinal; len: Cardinal): Byte;
+begin
+  Result := 0;
+  for var i: Cardinal := from to from+len-1 do
+    Result := Result xor data[i];
+end;
+
+function TuLI.BufToStr(data: array of Byte; from: Cardinal; len: Cardinal): string;
+begin
+  Result := '';
+  for var i := from to from+len-1 do
+  begin
+    Result := Result + IntToHex(Fbuf_in.data[i], 2);
+    if (i < (from+len-1)) then
+      Result := Result + ' ';
+  end;
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
