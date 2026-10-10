@@ -441,6 +441,7 @@ begin
   begin
     Parent := Self.gui.panel;
     Left := 1;
+    Top := -4;
     Caption := IntToStr(Self.mausAddr);
     Font.Size := 24;
   end;
