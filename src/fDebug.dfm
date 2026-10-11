@@ -1,8 +1,6 @@
 object F_Debug: TF_Debug
   Left = 0
   Top = 0
-  BorderIcons = [biSystemMenu, biMinimize]
-  BorderStyle = bsSingle
   Caption = 'Debug'
   ClientHeight = 474
   ClientWidth = 705
@@ -12,42 +10,15 @@ object F_Debug: TF_Debug
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  OnCreate = FormCreate
   OnDestroy = FormDestroy
   TextHeight = 13
-  object Label1: TLabel
-    Left = 512
-    Top = 453
-    Width = 66
-    Height = 13
-    Caption = 'D'#233'lka zpr'#225'vy:'
-  end
-  object L_len: TLabel
-    Left = 633
-    Top = 453
-    Width = 25
-    Height = 13
-    Alignment = taRightJustify
-    Caption = 'L_len'
-  end
-  object Label2: TLabel
-    Left = 664
-    Top = 453
-    Width = 28
-    Height = 13
-    Caption = 'znak'#367
-  end
-  object Label3: TLabel
-    Left = 8
-    Top = 8
-    Width = 43
-    Height = 13
-    Caption = 'Loglevel:'
-  end
   object LV_Log: TListView
-    Left = 8
-    Top = 31
-    Width = 689
-    Height = 272
+    Left = 0
+    Top = 41
+    Width = 705
+    Height = 433
+    Align = alClient
     Columns = <
       item
         Caption = #268'as'
@@ -64,65 +35,71 @@ object F_Debug: TF_Debug
         Caption = 'Zpr'#225'va'
         Width = 470
       end>
-    ReadOnly = True
+    MultiSelect = True
     RowSelect = True
-    TabOrder = 4
+    TabOrder = 1
     ViewStyle = vsReport
-    OnChange = LV_LogChange
     OnCustomDrawItem = LV_LogCustomDrawItem
   end
-  object M_Data: TMemo
-    Left = 8
-    Top = 309
-    Width = 689
-    Height = 140
-    ReadOnly = True
-    TabOrder = 5
-    OnChange = M_DataChange
-  end
-  object B_ClearLog: TButton
-    Left = 622
-    Top = 8
-    Width = 75
-    Height = 17
-    Caption = 'Smazat log'
-    TabOrder = 3
-    OnClick = B_ClearLogClick
-  end
-  object CHB_KeepAlive: TCheckBox
-    Left = 214
-    Top = 8
-    Width = 113
-    Height = 17
-    Caption = 'Logovat keep-alive'
-    TabOrder = 1
-    OnClick = CHB_KeepAliveClick
-  end
-  object CHB_PingLogging: TCheckBox
-    Left = 333
-    Top = 8
-    Width = 82
-    Height = 17
-    Caption = 'Logovat ping'
-    TabOrder = 2
-    OnClick = CHB_KeepAliveClick
-  end
-  object CB_Loglevel: TComboBox
-    Left = 57
-    Top = 4
-    Width = 145
-    Height = 21
-    Style = csDropDownList
-    ItemIndex = 2
+  object P_Header: TPanel
+    Left = 0
+    Top = 0
+    Width = 705
+    Height = 41
+    Align = alTop
+    BevelOuter = bvNone
     TabOrder = 0
-    Text = 'varov'#225'n'#237
-    OnChange = CB_LoglevelChange
-    Items.Strings = (
-      'nic'
-      'chyby'
-      'varov'#225'n'#237
-      'informace'
-      'data'
-      'debug')
+    object Label3: TLabel
+      Left = 96
+      Top = 14
+      Width = 43
+      Height = 13
+      Caption = 'Loglevel:'
+    end
+    object B_ClearLog: TButton
+      Left = 7
+      Top = 12
+      Width = 75
+      Height = 17
+      Caption = 'Smazat log'
+      TabOrder = 0
+      OnClick = B_ClearLogClick
+    end
+    object CHB_PingLogging: TCheckBox
+      Left = 421
+      Top = 14
+      Width = 82
+      Height = 17
+      Caption = 'Logovat ping'
+      TabOrder = 3
+      OnClick = CHB_KeepAliveClick
+    end
+    object CHB_KeepAlive: TCheckBox
+      Left = 302
+      Top = 14
+      Width = 113
+      Height = 17
+      Caption = 'Logovat keep-alive'
+      TabOrder = 2
+      OnClick = CHB_KeepAliveClick
+    end
+    object CB_Loglevel: TComboBox
+      Left = 145
+      Top = 10
+      Width = 145
+      Height = 21
+      Style = csDropDownList
+      ItemIndex = 2
+      TabOrder = 1
+      Text = 'varov'#225'n'#237
+      OnChange = CB_LoglevelChange
+      Items.Strings = (
+        'nic'
+        'chyby'
+        'varov'#225'n'#237
+        'informace'
+        'data'
+        'debug')
+    end
   end
 end
