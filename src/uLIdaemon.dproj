@@ -99,10 +99,9 @@
         <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
-        <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.1.0;InternalName=uLIdaemon;LegalCopyright=Jan Malina;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
+        <VerInfo_MinorVer>5</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.5.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Malina;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
         <BT_BuildType>Debug</BT_BuildType>
-        <VerInfo_Release>1</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_MapFile>3</DCC_MapFile>
@@ -114,9 +113,8 @@
         <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
-        <VerInfo_MinorVer>4</VerInfo_MinorVer>
-        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.4.1.0;InternalName=uLIdaemon;LegalCopyright=Jan Horacek;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
-        <VerInfo_Release>1</VerInfo_Release>
+        <VerInfo_MinorVer>5</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=;FileDescription=uLIdaemon;FileVersion=1.5.0.0;InternalName=uLIdaemon;LegalCopyright=Jan Malina;LegalTrademarks=;OriginalFilename=uLIdaemon.exe;ProductName=uLIdaemon;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.uLIdaemon</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">

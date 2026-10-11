@@ -560,13 +560,15 @@ begin
             begin
               Self.WriteLogGetXN(deviceAddr, 'resume operations request');
 
-              Self.WriteLogPutXN(deviceAddr, '2x GO');
-              Self.SendXN(deviceAddr, _CMD_DCC_ON);
-              Self.SendXN(deviceAddr, _CMD_DCC_ON);
+              Self.WriteLogPutXN(0, '2x GO');
+              Self.SendXN(0, _CMD_DCC_ON);
+              Self.SendXN(0, _CMD_DCC_ON);
 
-              Self.WriteLogPutXN(deviceAddr, '2x STOP');
-              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
-              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
+              Sleep(50);
+
+              Self.WriteLogPutXN(0, '2x OFF');
+              Self.SendXN(0, _CMD_DCC_OFF);
+              Self.SendXN(0, _CMD_DCC_OFF);
             end;
 
           $80:
@@ -578,13 +580,15 @@ begin
               if ((i > -1) and (Self.sloty[i].isLoko)) then
                 Self.sloty[i].STOPloko();
 
-              Self.WriteLogPutXN(deviceAddr, '2x STOP');
-              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
-              Self.SendXN(deviceAddr, _CMD_DCC_OFF);
+              Self.WriteLogPutXN(0, '2x OFF');
+              Self.SendXN(0, _CMD_DCC_OFF);
+              Self.SendXN(0, _CMD_DCC_OFF);
 
-              Self.WriteLogPutXN(deviceAddr, '2x GO');
-              Self.SendXN(deviceAddr, _CMD_DCC_ON);
-              Self.SendXN(deviceAddr, _CMD_DCC_ON);
+              Sleep(50);
+
+              Self.WriteLogPutXN(0, '2x GO');
+              Self.SendXN(0, _CMD_DCC_ON);
+              Self.SendXN(0, _CMD_DCC_ON);
             end;
         else
           Self.SendNotSupported(deviceAddr);
@@ -602,25 +606,28 @@ begin
 
     $80:
       begin
-        // stop all (power on)
+        // stop all engines
         Self.WriteLogGetXN(deviceAddr, 'STOP ALL LOKS');
-        var slot := Self.FindSlot(deviceAddr);
-        if (slot > 0) then
-          Self.sloty[slot].ReleaseLoko();
 
-        Self.WriteLogPutXN(0, '3x STOP');
-        Self.SendXN(0, _CMD_DCC_STOP);
+        var i := Self.FindSlot(deviceAddr);
+        if ((i > -1) and (Self.sloty[i].isLoko)) then
+          Self.sloty[i].STOPloko();
+
+        Self.WriteLogPutXN(0, '2x STOP');
         Self.SendXN(0, _CMD_DCC_STOP);
         Self.SendXN(0, _CMD_DCC_STOP);
 
-        Self.WriteLogPutXN(0, '3x GO');
-        Self.SendXN(0, _CMD_DCC_ON);
+        Sleep(50);
+
+        Self.WriteLogPutXN(0, '2x GO');
         Self.SendXN(0, _CMD_DCC_ON);
         Self.SendXN(0, _CMD_DCC_ON);
       end;
     $92:
       begin
         // e-stop one loco
+        Self.WriteLogGetXN(deviceAddr, 'Emergency stop loko');
+
         var addr := Self.LokAddrDecode(msg[0], msg[1]);
         if (((addr >= 1) and (addr <= _SLOTS_CNT)) and
           (deviceAddr <> Self.sloty[addr].mausId)) then
@@ -747,6 +754,7 @@ begin
                 if (emergencyStop) then
                 begin
                   // emergency stop -> uvolnit HV ze slotu
+                  Self.WriteLogGetXN(deviceAddr, 'loco emergecy stop -> release');
                   Self.sloty[addr].ReleaseLoko();
                 end
                 else
@@ -1471,7 +1479,7 @@ begin
     end
     else
     begin
-      Self.WriteLogPutXN(0, '2x STOP');
+      Self.WriteLogPutXN(0, '2x OFF');
       Self.SendXN(0, _CMD_DCC_OFF);
       Self.SendXN(0, _CMD_DCC_OFF);
     end;
