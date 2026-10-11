@@ -21,7 +21,6 @@ type
     procedure FormShow(Sender: TObject);
     procedure A_DebugExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure SB_MainDblClick(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -35,7 +34,6 @@ type
     P_Server: TPanel;
     P_Client: TPanel;
     P_ULI: TPanel;
-    close_app: Boolean;
 
     activeMDIform: TForm;
 
@@ -73,26 +71,11 @@ begin
   GlobConfig.data.frmSize.X := Self.Width;
   GlobConfig.data.frmSize.Y := Self.Height;
   GlobConfig.SaveFile();
-end;
 
-procedure TF_Main.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-begin
-  if (not Self.close_app) then
-  begin
-    if (TCPClient.status <> TPanelConnectionStatus.closed) then
-    begin
-      Self.close_app := true; // informujeme OnDisconnect, ze ma zavrit okno
-      TCPClient.Disconnect();
-      CanClose := false; // okno zatim nezavirame, zavre se az pri OnDisconnect
-    end;
-
-    if (uLI.connected) then
-    begin
-      Self.close_app := true;
-      uLI.Close();
-      CanClose := false;
-    end;
-  end;
+  if (TCPClient.status <> TPanelConnectionStatus.closed) then
+    TCPClient.Disconnect();
+  if (uLI.connected) then
+    uLI.Close();
 end;
 
 procedure TF_Main.FormCreate(Sender: TObject);

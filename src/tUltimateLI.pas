@@ -79,6 +79,7 @@ type
     uLIStatusValid: boolean;
     uLIStatus: TuLIStatus;
     uLIVersion: TuLIVersion;
+    closing: Boolean;
 
     fLogLevel: TuLILogLevel;
     fDCC: boolean;
@@ -214,6 +215,7 @@ begin
 
   Self.uLIStatus := _DEF_ULI_STATUS;
   Self.uLIVersion := _DEF_ULI_VERSION;
+  Self.closing := False;
 
   Self.ComPort := TComPort.Create(nil);
   Self.ComPort.BaudRate := _CPORT_BAUDRATE;
@@ -295,15 +297,15 @@ end;
 
 procedure TuLI.OnComError(Sender: TObject; Errors: TComErrors);
 begin
-  Self.WriteLog(tllErrors, 'ERR: COM PORT ERROR');
+  Self.WriteLog(tllErrors, 'COM PORT ERROR');
 end;
 
 procedure TuLI.OnComException(Sender: TObject; TComException: TComExceptions;
   ComportMessage: string; WinError: Int64; WinMessage: string);
 begin
-  Self.WriteLog(tllErrors, 'ERR: COM PORT EXCEPTION: ' + ComportMessage + '; ' +
-    WinMessage);
-  raise Exception.Create(ComportMessage);
+  Self.WriteLog(tllErrors, 'COM PORT EXCEPTION: ' + ComportMessage + '; ' + WinMessage);
+  if ((Self.ComPort.connected) and (not Self.closing)) then
+    Self.Close();
 end;
 
 procedure TuLI.ComBeforeOpen(Sender: TObject);
@@ -356,6 +358,7 @@ procedure TuLI.ComAfterClose(Sender: TObject);
 begin
   Self.WriteLog(tllInfo, 'CLOSE OK');
   Self.uLIStatusValid := false;
+  Self.closing := False;
 
   for var i := 1 to _SLOTS_CNT do
     Self.sloty[i].mausId := TSlot._MAUS_NULL;
@@ -367,16 +370,8 @@ begin
   TCPServer.BroadcastSlots();
   TCPServer.BroadcastAuth(true);
 
-  if (F_Main.close_app) then
-  begin
-    if (TCPClient.status = client.TPanelConnectionStatus.closed) then
-      F_Main.Close();
-  end
-  else
-  begin
-    F_Main.ShowChild(F_Connect);
-    F_Connect.GB_Connect.Caption := ' Odpojeno od uLI-master ';
-  end;
+  F_Main.ShowChild(F_Connect);
+  F_Connect.GB_Connect.Caption := ' Odpojeno od uLI-master ';
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
@@ -411,6 +406,7 @@ begin
   if (not Self.ComPort.connected) then
     Exit();
 
+  Self.closing := True;
   Self.WriteLog(tllInfo, 'CLOSING');
 
   if (Self.busEnabled) then
@@ -419,7 +415,7 @@ begin
   try
     Self.ComPort.Close();
   except
-
+    Self.closing := False;
   end;
 end;
 
@@ -1093,15 +1089,8 @@ begin
   if ((not Self.ignoreKeepAliveLogging) or (callByte <> $A0) or (Length(data) <> 2) or (ord(data[2]) <> _KEEP_ALIVE)) then
     Self.WriteLog(tllData, 'PUT: ' + Self.BufToStr(rawData));
 
-  var asp: PAsync;
-  InitAsync(asp);
   try
-    Self.ComPort.WriteAsync(rawData[1], Length(rawData), asp);
-    while (not Self.ComPort.IsAsyncCompleted(asp)) do
-    begin
-      Application.ProcessMessages();
-      Sleep(1);
-    end;
+    Self.ComPort.Write(rawData[1], Length(rawData));
   except
     on E: Exception do
     begin
@@ -1111,8 +1100,6 @@ begin
         Self.ComPort.Close();
     end;
   end;
-
-  DoneAsync(asp);
 end;
 
 procedure TuLI.SendXN(device: Byte; data: ShortString);

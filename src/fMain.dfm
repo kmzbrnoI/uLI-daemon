@@ -16,7 +16,6 @@ object F_Main: TF_Main
   Font.Style = []
   FormStyle = fsStayOnTop
   OnClose = FormClose
-  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnResize = FormResize
   OnShow = FormShow

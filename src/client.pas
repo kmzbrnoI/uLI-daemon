@@ -214,6 +214,9 @@ end; // ctor
 destructor TTCPClient.Destroy();
 begin
   try
+    if (Assigned(Self.rthread)) then
+      Self.rthread.Terminate();
+
     if (Assigned(Self.tcpClient)) then
       FreeAndNil(Self.tcpClient);
 
@@ -340,9 +343,6 @@ begin
 
   Self.username := '';
   F_Main.UpdateTitle();
-
-  if ((F_Main.close_app) and (not uLI.Connected)) then
-    F_Main.Close();
 end;
 
 /// /////////////////////////////////////////////////////////////////////////////
