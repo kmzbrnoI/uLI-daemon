@@ -30,7 +30,7 @@ type
   private
     { Private declarations }
   public
-    procedure Log(msg: string; lvl: TuLILogLevel);
+    procedure Log(msg: string; source: string; lvl: TuLILogLevel);
   end;
 
 var
@@ -60,12 +60,15 @@ end;
 procedure TF_Debug.LV_LogCustomDrawItem(Sender: TCustomListView;
   Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
 begin
-  if (Item.SubItems.Count < 1) then
-    Exit();
+  const loglevel: TuLILogLevel = TuLILogLevel(Item.Data);
 
-  if (LeftStr(Item.SubItems.Strings[0], 3) = 'GET') then
-    Self.LV_Log.Canvas.Brush.Color := $FFEEEE;
-  if (LeftStr(Item.SubItems.Strings[0], 4) = 'SEND') then
+  if (loglevel = tllErrors) then
+    Self.LV_Log.Canvas.Brush.Color := $E0E0FF
+  else if (loglevel = tllWarnings) then
+    Self.LV_Log.Canvas.Brush.Color := $D0FFFF
+  else if (Item.SubItems.Count >= 3) and (LeftStr(Item.SubItems.Strings[2], 3) = 'GET') then
+    Self.LV_Log.Canvas.Brush.Color := $FFEEEE
+  else if (Item.SubItems.Count >= 3) and (LeftStr(Item.SubItems.Strings[2], 3) = 'PUT') then
     Self.LV_Log.Canvas.Brush.Color := $EEFFEE;
 end;
 
@@ -96,7 +99,7 @@ begin
   F_Debug := nil;
 end;
 
-procedure TF_Debug.Log(msg: string; lvl: TuLILogLevel);
+procedure TF_Debug.Log(msg: string; source: string; lvl: TuLILogLevel);
 begin
   if (F_Debug = nil) then
     Exit();
@@ -113,7 +116,10 @@ begin
 
   var LI := Self.LV_Log.Items.Insert(0);
   LI.Caption := FormatDateTime('hh:nn:ss,zzz', Now);
+  LI.SubItems.Add(source);
+  LI.SubItems.Add(ULILogLevelToStr(lvl));
   LI.SubItems.Add(msg);
+  LI.Data := Pointer(lvl);
 end;
 
 end.// unit

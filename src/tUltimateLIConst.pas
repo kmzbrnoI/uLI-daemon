@@ -11,6 +11,7 @@ type
 
 procedure ExtractStringsEx(Separators: TSysCharSet; Ignore: TSysCharSet;
   Content: string; var Strings: TStrings);
+function ULILogLevelToStr(ll: TuLILogLevel): string;
 
 implementation
 
@@ -61,6 +62,20 @@ begin
 
   if (s <> '') then
     Strings.Add(s);
+end;
+
+function ULILogLevelToStr(ll: TuLILogLevel): string;
+begin
+  case (ll) of
+    tllNo: Result := 'nic';
+    tllErrors: Result := 'chyba';
+    tllWarnings: Result := 'varování';
+    tllInfo: Result := 'info';
+    tllData: Result := 'data';
+    tllDetail: Result := 'detail';
+  else
+    Result := '?';
+  end;
 end;
 
 end.

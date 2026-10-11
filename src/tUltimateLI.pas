@@ -109,6 +109,10 @@ type
     procedure ParseuLIStatus(msg: PByte; msgLen: Cardinal);
 
     procedure WriteLog(lvl: TuLILogLevel; msg: string);
+    procedure WriteLogGetXN(deviceAddr: Byte; msg: string);
+    procedure WriteLogGetLI(msg: string; lvl: TuLILogLevel = tllInfo);
+    procedure WriteLogPutXN(deviceAddr: Byte; msg: string);
+    procedure WriteLogPutLI(msg: string);
 
     procedure Send(callByte: Byte; data: ShortString);
     procedure SendXN(device: Byte; data: ShortString);
@@ -260,6 +264,26 @@ end;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
+procedure TuLI.WriteLogGetXN(deviceAddr: Byte; msg: string);
+begin
+  Self.WriteLog(tllInfo, 'GET XN '+IntToStr(deviceAddr)+': '+msg);
+end;
+
+procedure TuLI.WriteLogGetLI(msg: string; lvl: TuLILogLevel);
+begin
+  Self.WriteLog(lvl, 'GET uLI: '+msg);
+end;
+
+procedure TuLI.WriteLogPutXN(deviceAddr: Byte; msg: string);
+begin
+  Self.WriteLog(tllInfo, 'PUT XN '+IntToStr(deviceAddr)+': '+msg);
+end;
+
+procedure TuLI.WriteLogPutLI(msg: string);
+begin
+  Self.WriteLog(tllInfo, 'PUT uLI: '+msg);
+end;
+
 procedure TuLI.WriteLog(lvl: TuLILogLevel; msg: string);
 begin
   if ((lvl <= Self.logLevel) and (Assigned(Self.OnLog))) then
@@ -308,7 +332,7 @@ begin
   Self.SetStatus(Self.uLIStatus);
 
   // uLI version request
-  Self.WriteLog(tllInfo, 'SEND: version request');
+  Self.WriteLogPutLI('version request');
   Self.SenduLI(#$11 + #$80);
 end;
 
@@ -477,7 +501,9 @@ begin
       break;
     end;
 
-    // message ok -> parse
+    // message ok -> log & parse
+    if ((not Self.ignoreKeepAliveLogging) or (msgLen <> 6) or (callByte <> $A0) or (Self.Fbuf_in.data[msgStartI+4] <> _KEEP_ALIVE)) then
+      Self.WriteLog(tllData, 'GET: ' + Self.BufToStr(@Self.Fbuf_in.data[msgStartI], msgLen));
     Self.ParseComMsg(callByte, headerByte, @Self.Fbuf_in.data[msgStartI+4], msgLen-5);
 
     msgStartI := msgStartI + msgLen;
@@ -499,9 +525,6 @@ end;
 
 procedure TuLI.ParseComMsg(callByte: Byte; headerByte: Byte; msg: PByte; msgLen: Cardinal);
 begin
-  if ((not Self.ignoreKeepAliveLogging) or (msgLen <> 1) or (callByte <> $A0) or (msg[0] <> _KEEP_ALIVE)) then
-    Self.WriteLog(tllData, 'GET: 51 15 ' + IntToHex(ord(callByte), 2) + ' ' + IntToHex(ord(headerByte), 2) + ' ' + Self.BufToStr(msg, msgLen));
-
   try
     var target := (callByte shr 5) AND 3;
     if (target = 3) then
@@ -525,46 +548,45 @@ begin
         case (msg[0]) of
           $21:
             begin
-              Self.WriteLog(tllInfo,
-                'GET: command station software version request');
-              Self.WriteLog(tllInfo,
-                'SEND: command station software version');
+              Self.WriteLogGetXN(deviceAddr, 'command station software version request');
+              Self.WriteLogPutXN(deviceAddr, 'command station software version');
               Self.SendXN(deviceAddr, #$63 + #$21 + #$36 + #$00);
             end;
 
           $24:
             begin
-              Self.WriteLog(tllInfo, 'GET: command station status request');
-              Self.WriteLog(tllInfo, 'SEND: command station status');
+              Self.WriteLogGetXN(deviceAddr, 'command station status request');
+              Self.WriteLogPutXN(deviceAddr, 'command station status');
               Self.SendXN(deviceAddr, ShortString(#$62 + #$22 + (char(not Self.DCC))));
             end;
 
           $81:
             begin
-              Self.WriteLog(tllInfo, 'GET: resume operations request');
+              Self.WriteLogGetXN(deviceAddr, 'resume operations request');
 
-              Self.WriteLog(tllInfo, 'PUT: GO');
+              Self.WriteLogPutXN(deviceAddr, '2x GO');
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
 
-              Self.WriteLog(tllInfo, 'PUT: STOP');
+              Self.WriteLogPutXN(deviceAddr, '2x STOP');
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
             end;
 
           $80:
             begin
-              Self.WriteLog(tllInfo, 'GET: STOP operations request');
+              Self.WriteLogGetXN(deviceAddr, 'STOP operations request');
 
               // zastavit hnaci vozidlo
               var i := Self.FindSlot(deviceAddr);
               if ((i > -1) and (Self.sloty[i].isLoko)) then
                 Self.sloty[i].STOPloko();
 
-              Self.WriteLog(tllInfo, 'PUT: STOP');
+              Self.WriteLogPutXN(deviceAddr, '2x STOP');
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
               Self.SendXN(deviceAddr, _CMD_DCC_OFF);
-              Self.WriteLog(tllInfo, 'PUT: GO');
+
+              Self.WriteLogPutXN(deviceAddr, '2x GO');
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
               Self.SendXN(deviceAddr, _CMD_DCC_ON);
             end;
@@ -576,10 +598,8 @@ begin
     $42:
       begin
         // Accessory Decoder information request
-        Self.WriteLog(tllInfo,
-          'GET: Accessory Decoder information request');
-        Self.WriteLog(tllInfo,
-          'PUT: Default Accessory Decoder information');
+        Self.WriteLogGetXN(deviceAddr, 'Accessory Decoder information request');
+        Self.WriteLogPutXN(deviceAddr, 'Default Accessory Decoder information');
         var data2: Byte := $20 + ((msg[1] and 1) shl 4);
         Self.SendXN(deviceAddr, ShortString(#$42) + AnsiChar(msg[0]) + AnsiChar(data2));
       end; // $42
@@ -587,17 +607,17 @@ begin
     $80:
       begin
         // stop all (power on)
-        Self.WriteLog(tllInfo, 'GET: STOP ALL LOKS');
+        Self.WriteLogGetXN(deviceAddr, 'STOP ALL LOKS');
         var slot := Self.FindSlot(deviceAddr);
         if (slot > 0) then
           Self.sloty[slot].ReleaseLoko();
 
-        Self.WriteLog(tllInfo, 'PUT: 3x STOP');
+        Self.WriteLogPutXN(0, '3x STOP');
         Self.SendXN(0, _CMD_DCC_STOP);
         Self.SendXN(0, _CMD_DCC_STOP);
         Self.SendXN(0, _CMD_DCC_STOP);
 
-        Self.WriteLog(tllInfo, 'PUT: 3x GO');
+        Self.WriteLogPutXN(0, '3x GO');
         Self.SendXN(0, _CMD_DCC_ON);
         Self.SendXN(0, _CMD_DCC_ON);
         Self.SendXN(0, _CMD_DCC_ON);
@@ -623,22 +643,22 @@ begin
         case (msg[0]) of
           00:
             begin
-              Self.WriteLog(tllInfo, 'GET: locomotive information request');
+              Self.WriteLogGetXN(deviceAddr, 'locomotive information request');
               Self.SendLocoData(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           07:
             begin
-              Self.WriteLog(tllInfo, 'GET: function status F0-F12 request (>=3.0)');
+              Self.WriteLogGetXN(deviceAddr, 'function status F0-F12 request (>=3.0)');
               Self.SendLocoFuncType(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           08:
             begin
-              Self.WriteLog(tllInfo, 'GET: function status F13-F28 request (>=3.6)');
+              Self.WriteLogGetXN(deviceAddr, 'function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13Type(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           09:
             begin
-              Self.WriteLog(tllInfo, 'GET: function status F13-F28 request (>=3.6)');
+              Self.WriteLogGetXN(deviceAddr, 'function status F13-F28 request (>=3.6)');
               Self.SendLocoFunc13(deviceAddr, Self.LokAddrDecode(msg[1], msg[2]));
             end;
           else
@@ -651,7 +671,7 @@ begin
         case (msg[0]) of
           $10 .. $13:
             begin
-              Self.WriteLog(tllInfo, 'GET: locomotive set speed');
+              Self.WriteLogGetXN(deviceAddr, 'locomotive set speed');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               var maxsp: Integer;
@@ -747,7 +767,7 @@ begin
 
           $20:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F0-F4');
+              Self.WriteLogGetXN(deviceAddr, 'set F0-F4');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -770,7 +790,7 @@ begin
 
           $21:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F5-F8');
+              Self.WriteLogGetXN(deviceAddr, 'set F5-F8');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -792,7 +812,7 @@ begin
 
           $22:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F9-F12');
+              Self.WriteLogGetXN(deviceAddr, 'set F9-F12');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or
@@ -814,7 +834,7 @@ begin
 
           $23:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F13-F20 (>=3.6)');
+              Self.WriteLogGetXN(deviceAddr, 'set F13-F20 (>=3.6)');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -835,7 +855,7 @@ begin
 
           $28:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F21-F28 (>=3.6)');
+              Self.WriteLogGetXN(deviceAddr, 'set F21-F28 (>=3.6)');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -856,7 +876,7 @@ begin
 
           $F3:
             begin
-              Self.WriteLog(tllInfo, 'GET: set F13-F20');
+              Self.WriteLogGetXN(deviceAddr, 'set F13-F20');
 
               var addr := Self.LokAddrDecode(msg[1], msg[2]);
               if ((addr = 0) or (addr > _SLOTS_CNT) or (not Self.sloty[addr].isLoko)) then
@@ -894,12 +914,12 @@ begin
         case (msg[0]) of
           $01:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: USB incoming data timeout');
+              Self.WriteLogGetLI('USB incoming data timeout', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: USB incoming data timeout');
             end;
           $02:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: USART incoming data timeout');
+              Self.WriteLogGetLI('USART incoming data timeout', tllErrors);
 
               // report the error quite silently
               if ((F_Main.P_ULI.Color = clGreen) or
@@ -912,15 +932,15 @@ begin
             end;
           $03:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: Unknown command');
+              Self.WriteLogGetLI('GET: Unknown command', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: Unknown command');
             end;
           $04:
-            Self.WriteLog(tllInfo, 'GET: OK');
+            Self.WriteLogGetLI('GET: OK');
           $05:
             begin
               if (not Self.ignoreKeepAliveLogging) then
-                Self.WriteLog(tllInfo, 'GET: keep-alive');
+                Self.WriteLogGetLI('keep-alive');
               Self.KAreceiveTimeout := 0;
 
               if ((F_Main.P_ULI.Color = clGreen) or
@@ -931,36 +951,36 @@ begin
             end;
           $06:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: USB>USART buffer overflow');
+              Self.WriteLogGetLI('USB>USART buffer overflow', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: USB>USART buffer overflow');
             end;
           $07:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: USB XOR error');
+              Self.WriteLogGetLI('USB XOR error', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: USB XOR error');
             end;
           $08:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: USB parity error');
+              Self.WriteLogGetLI('USB parity error', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: USB parity error');
             end;
           $09:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power source turned off');
+              Self.WriteLogGetLI('XpressNET power source turned off', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: XpressNET power source turned off');
             end;
           $0A:
             begin
-              Self.WriteLog(tllErrors, 'ERR: GET: XpressNET power transistor closed');
+              Self.WriteLogGetLI('XpressNET power transistor closed', tllErrors);
               F_Main.LogMessage('uLI-ERR: GET: XpressNET power transistor closed');
             end;
           $0B:
             begin
-              Self.WriteLog(tllWarnings, 'WARN: GET: Missed timer');
+              Self.WriteLogGetLI('Missed timer', tllWarnings);
             end;
           $0C:
             begin
-              Self.WriteLog(tllWarnings, 'WARN: GET: USART RX Framing error');
+              Self.WriteLogGetLI('USART RX Framing error', tllWarnings);
             end;
         end;
       end;
@@ -968,7 +988,7 @@ begin
     $11:
       begin
         // uLI-master status response
-        Self.WriteLog(tllInfo, 'GET: master status');
+        Self.WriteLogGetLI('master status');
         Self.ParseuLIStatus(msg, msgLen);
 
         F_Main.P_ULI.Color := clGreen;
@@ -983,8 +1003,7 @@ begin
             IntToStr(msg[1] AND $F);
           Self.uLIVersion.sw := IntToStr((msg[2] shr 4) AND $F) + '.' +
             IntToStr(msg[2] AND $F);
-          Self.WriteLog(tllInfo, 'GET: uLI version hw:' + Self.uLIVersion.hw
-            + ', sw:' + Self.uLIVersion.sw);
+          Self.WriteLogGetLI('uLI version hw:' + Self.uLIVersion.hw + ', sw:' + Self.uLIVersion.sw);
 
           F_Main.P_ULI.Hint := 'Připojeno k uLI-master HW='+Self.uLIVersion.hw + ', SW='+Self.uLIVersion.sw;
         end;
@@ -1149,7 +1168,7 @@ end { EnumComPorts };
 
 procedure TuLI.SetStatus(new: TuLIStatus);
 begin
-  Self.WriteLog(tllInfo, 'PUT: status');
+  Self.WriteLogPutLI('status');
   var data: Byte := $A0 + Integer(new.transistor) + (Integer(new.aliveReceiving) shl 2) +
     (Integer(new.aliveSending) shl 3);
   Self.SenduLI(ShortString(#$11) + AnsiChar(data));
@@ -1179,13 +1198,13 @@ end;
 procedure TuLI.SendKeepAlive();
 begin
   if (not Self.ignoreKeepAliveLogging) then
-    Self.WriteLog(tllInfo, 'SEND: keep-alive');
+    Self.WriteLogPutLI('keep-alive');
   Self.SenduLI(#$01 + #$05);
 end;
 
 procedure TuLI.SendStatusRequest();
 begin
-  Self.WriteLog(tllInfo, 'SEND: status request');
+  Self.WriteLogPutLI('status request');
   Self.SenduLI(#$11 + #$A2);
 end;
 
@@ -1275,14 +1294,14 @@ begin
     end;
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllInfo, 'PUT: locomotive information');
+    Self.WriteLogPutXN(deviceAddr, 'locomotive information');
 
   end else begin
     // lokomotiva neni rizena ovladacem
     if ((addr > 0) and (addr < _SLOTS_CNT)) then
       for var i := 0 to _MAX_FUNC do
         Self.sloty[addr].mausFunkce[i] := false;
-    Self.WriteLog(tllInfo, 'PUT: locomotive is busy - empty slot');
+    Self.WriteLogPutXN(deviceAddr, 'locomotive is busy - empty slot');
     toSend := toSend + #$A + #$80 + #0 + #0;
   end;
 
@@ -1323,11 +1342,11 @@ begin
     toSend := toSend + #$03; // 28 speed steps
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllInfo, 'PUT: function F13-F28 information');
+    Self.WriteLogPutXN(deviceAddr, 'function F13-F28 information');
   end else begin
     // no good addres or slot, send empty response
     toSend := toSend + #$00 + #$00 + #$03;
-    Self.WriteLog(tllInfo, 'PUT: function F13-F28 information empty');
+    Self.WriteLogPutXN(deviceAddr, 'function F13-F28 information empty');
   end;
 
   Self.SendXN(deviceAddr, toSend);
@@ -1362,11 +1381,11 @@ begin
     end;
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllInfo, 'PUT: function F0-F12 momentary information');
+    Self.WriteLogPutXN(deviceAddr, 'function F0-F12 momentary information');
   end else begin
     // no good addres or slot, send empty response
     toSend := toSend + #$00 + #$00;
-    Self.WriteLog(tllInfo, 'PUT: function F0-F12 momentary information empty');
+    Self.WriteLogPutXN(deviceAddr, 'function F0-F12 momentary information empty');
   end;
 
   Self.SendXN(deviceAddr, toSend);
@@ -1404,10 +1423,10 @@ begin
     toSend := toSend + #$03; // 28 speed steps
 
     Self.sloty[addr].mausFunkce := Self.sloty[addr].funkce;
-    Self.WriteLog(tllInfo, 'PUT: function F13-F28 momentary information');
+    Self.WriteLogPutXN(deviceAddr, 'function F13-F28 momentary information');
   end else begin
     // no good addres or slot, send empty response
-    Self.WriteLog(tllInfo, 'PUT: function F13-F28 momentary information empty');
+    Self.WriteLogPutXN(deviceAddr, 'function F13-F28 momentary information empty');
     toSend := toSend + #$00 + #$00 + #$03;
   end;
 
@@ -1418,7 +1437,7 @@ end;
 
 procedure TuLI.SendNotSupported(deviceAddr: Byte);
 begin
-  Self.WriteLog(tllInfo, 'PUT: command not supported');
+  Self.WriteLogPutXN(deviceAddr, 'command not supported');
   Self.SendXN(deviceAddr, #$61 + #$82);
 end;
 
@@ -1459,11 +1478,13 @@ begin
   begin
     if (new) then
     begin
+      Self.WriteLogPutXN(0, '2x GO');
       Self.SendXN(0, _CMD_DCC_ON);
       Self.SendXN(0, _CMD_DCC_ON);
     end
     else
     begin
+      Self.WriteLogPutXN(0, '2x STOP');
       Self.SendXN(0, _CMD_DCC_OFF);
       Self.SendXN(0, _CMD_DCC_OFF);
     end;
@@ -1495,7 +1516,7 @@ end;
 
 procedure TuLI.SendLokoStolen(deviceAddr: Byte; addrHi: Byte; addrLo: Byte);
 begin
-  Self.WriteLog(tllInfo, 'PUT: locomotive is being operated by another device');
+  Self.WriteLogPutXN(deviceAddr, 'locomotive is being operated by another device');
   Self.SendXN(deviceAddr, ShortString(#$E3 + #$40) + AnsiChar(addrHi) + AnsiChar(addrLo));
 end;
 

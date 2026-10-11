@@ -5,7 +5,7 @@ object F_Debug: TF_Debug
   BorderStyle = bsSingle
   Caption = 'Debug'
   ClientHeight = 474
-  ClientWidth = 616
+  ClientWidth = 705
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,14 +15,14 @@ object F_Debug: TF_Debug
   OnDestroy = FormDestroy
   TextHeight = 13
   object Label1: TLabel
-    Left = 424
+    Left = 512
     Top = 453
     Width = 66
     Height = 13
     Caption = 'D'#233'lka zpr'#225'vy:'
   end
   object L_len: TLabel
-    Left = 545
+    Left = 633
     Top = 453
     Width = 25
     Height = 13
@@ -30,7 +30,7 @@ object F_Debug: TF_Debug
     Caption = 'L_len'
   end
   object Label2: TLabel
-    Left = 576
+    Left = 664
     Top = 453
     Width = 28
     Height = 13
@@ -46,7 +46,7 @@ object F_Debug: TF_Debug
   object LV_Log: TListView
     Left = 8
     Top = 31
-    Width = 600
+    Width = 689
     Height = 272
     Columns = <
       item
@@ -54,8 +54,15 @@ object F_Debug: TF_Debug
         Width = 80
       end
       item
+        Caption = 'Zdroj'
+      end
+      item
+        Caption = 'Level'
+        Width = 60
+      end
+      item
         Caption = 'Zpr'#225'va'
-        Width = 480
+        Width = 470
       end>
     ReadOnly = True
     RowSelect = True
@@ -67,14 +74,14 @@ object F_Debug: TF_Debug
   object M_Data: TMemo
     Left = 8
     Top = 309
-    Width = 600
+    Width = 689
     Height = 140
     ReadOnly = True
     TabOrder = 5
     OnChange = M_DataChange
   end
   object B_ClearLog: TButton
-    Left = 533
+    Left = 622
     Top = 8
     Width = 75
     Height = 17

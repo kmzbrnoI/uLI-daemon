@@ -133,7 +133,7 @@ end;
 procedure TF_Main.OnuLILog(Sender: TObject; lvl: TuLILogLevel; msg: string);
 begin
   if (Assigned(F_Debug)) then
-    F_Debug.Log('uLI: ' + msg, lvl);
+    F_Debug.Log(msg, 'uLI', lvl);
 end;
 
 procedure TF_Main.OnuLIUsartMsgCntChange(Sender: TObject);
