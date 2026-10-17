@@ -7,7 +7,7 @@
 interface
 
 uses tHnaciVozidlo, SysUtils, Generics.Collections, Forms, ExtCtrls, Controls,
-  StdCtrls, Graphics, IdContext;
+  StdCtrls, Graphics, IdContext, Classes;
 
 type
   TMomRelease = record
@@ -37,7 +37,7 @@ type
     function GetUkradeno(): boolean;
     function GetTotal(): boolean;
 
-    procedure CreateGUI();
+    procedure CreateGUI(parentForm: TWinControl);
     procedure UpdateLokString();
 
     procedure OnBReleaseClick(Sender: TObject);
@@ -70,7 +70,7 @@ type
       B_Take: TButton;
     end;
 
-    constructor Create(mausAddr: Integer);
+    constructor Create(mausAddr: Integer; guiParent: TWinControl);
     destructor Destroy(); override;
 
     procedure ReleaseLoko();
@@ -106,14 +106,13 @@ uses client, fSlots, server;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-constructor TSlot.Create(mausAddr: Integer);
+constructor TSlot.Create(mausAddr: Integer; guiParent: TWinControl);
 begin
-  inherited Create();
   Self.mausAddr := mausAddr;
   Self.mausId := _MAUS_NULL;
   Self.HVs := TObjectList<THV>.Create();
   Self.imagSmer := 0;
-  Self.CreateGUI();
+  Self.CreateGUI(guiParent);
   Self.Sender := nil;
   Self.updating := false;
   Self.q_mom_release := TQueue<TMomRelease>.Create();
@@ -426,11 +425,12 @@ end;
 /// ///////////////////////       G  U  I        ////////////////////////////////
 /// /////////////////////////////////////////////////////////////////////////////
 
-procedure TSlot.CreateGUI();
+procedure TSlot.CreateGUI(parentForm: TWinControl);
 begin
-  Self.gui.panel := TPanel.Create(nil);
+  Self.gui.panel := TPanel.Create(parentForm);
   with (Self.gui.panel) do
   begin
+    Parent := parentForm;
     Left := 5;
     Top := 5;
     Height := 40;
@@ -440,8 +440,8 @@ begin
   with (Self.gui.L_slotId) do
   begin
     Parent := Self.gui.panel;
-    Left := 1;
-    Top := -4;
+    Left := 5;
+    Top := 0;
     Caption := IntToStr(Self.mausAddr);
     Font.Size := 24;
   end;
@@ -456,8 +456,8 @@ begin
     Caption := '-';
     Left := 30;
     Width := 40;
-    Top := 10;
     Height := 20;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
     ShowHint := true;
   end;
 
@@ -468,10 +468,10 @@ begin
     Left := 80;
     Caption := 'Převzít';
     Enabled := false;
-    Top := 5;
     Width := 50;
     Height := 30;
     OnClick := Self.ONBTakeClick;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
   end;
 
   Self.gui.L_Addrs := TLabel.Create(Self.gui.panel);
@@ -481,7 +481,7 @@ begin
     Left := 80;
     Font.Size := 16;
     Caption := '-';
-    Top := 7;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
     AutoSize := false;
   end;
 
@@ -490,7 +490,7 @@ begin
   begin
     Parent := Self.gui.panel;
     Left := 210;
-    Top := 14;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
     Caption := '-';
     AutoSize := false;
     Width := 50;
@@ -503,7 +503,7 @@ begin
     Left := 300;
     Caption := 'Ruční řízení';
     Enabled := false;
-    Top := 11;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
     OnClick := Self.OnCHBTotalClick;
     Width := 75;
   end;
@@ -515,9 +515,9 @@ begin
     Left := 380;
     Caption := 'Uvolnit';
     Enabled := false;
-    Top := 5;
     Width := 50;
     Height := 30;
+    Top := (Self.gui.panel.ClientHeight-Height) div 2;
     OnClick := Self.OnBReleaseClick;
   end;
 end;

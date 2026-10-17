@@ -7,7 +7,7 @@
 interface
 
 uses SysUtils, CPort, Forms, tUltimateLIConst, Classes, Registry, Windows,
-  ExtCtrls, mausSlot, Graphics;
+  ExtCtrls, mausSlot, Graphics, Controls;
 
 type
   TBuffer = record
@@ -161,7 +161,7 @@ type
     sloty: array [1 .. _SLOTS_CNT] of TSlot;
     ignoreKeepAliveLogging: boolean;
 
-    constructor Create();
+    constructor Create(guiParent: TWinControl);
     destructor Destroy(); override;
 
     procedure Open(port: string);
@@ -209,9 +209,9 @@ uses client, tHnaciVozidlo, fMain, server, fSlots, fConnect, System.Math;
 
 /// /////////////////////////////////////////////////////////////////////////////
 
-constructor TuLI.Create();
+constructor TuLI.Create(guiParent: TWinControl);
 begin
-  inherited;
+  inherited Create();
 
   Self.uLIStatus := _DEF_ULI_STATUS;
   Self.uLIVersion := _DEF_ULI_VERSION;
@@ -249,7 +249,7 @@ begin
   Self.ffusartMsgTimeoutCnt := 0;
 
   for var i := 1 to _SLOTS_CNT do
-    Self.sloty[i] := TSlot.Create(i);
+    Self.sloty[i] := TSlot.Create(i, guiParent);
 end;
 
 destructor TuLI.Destroy();
@@ -1700,7 +1700,6 @@ end;
 
 initialization
 
-uLI := TuLI.Create();
 
 finalization
 

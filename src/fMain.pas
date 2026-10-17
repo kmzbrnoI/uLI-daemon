@@ -80,6 +80,8 @@ end;
 
 procedure TF_Main.FormCreate(Sender: TObject);
 begin
+  uLI := TuLI.Create(Self);
+
   Self.activeMDIform := nil;
 
   Self.CreateShapes();
