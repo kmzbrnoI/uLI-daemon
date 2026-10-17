@@ -323,7 +323,7 @@ procedure TuLI.ComAfterOpen(Sender: TObject);
 begin
   Self.WriteLog(tllInfo, 'OPEN OK');
   F_Main.P_ULI.Color := clYellow;
-  F_Main.P_ULI.Hint := 'Připojeno k uLI-master, čekám na stav...';
+  F_Main.P_ULI.Hint := 'Připojeno k uLI-master';
 
   // close if uLI does not respond in a few seconds
   Self.tKAReceiveTimer.Enabled := true;
@@ -996,7 +996,6 @@ begin
         Self.ParseuLIStatus(msg, msgLen);
 
         F_Main.P_ULI.Color := clGreen;
-        F_Main.P_ULI.Hint := 'Připojeno k uLI-master, stav vyčten';
       end;
 
     $13:
