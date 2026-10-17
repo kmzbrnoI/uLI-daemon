@@ -409,9 +409,6 @@ begin
   Self.closing := True;
   Self.WriteLog(tllInfo, 'CLOSING');
 
-  if (Self.busEnabled) then
-    Self.busEnabled := false;
-
   try
     Self.ComPort.Close();
   except
